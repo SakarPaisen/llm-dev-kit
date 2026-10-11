@@ -129,6 +129,8 @@ docker pull ghcr.io/sameeralam3127/llm-dev-kit-rag-service:latest
 docker pull ghcr.io/sameeralam3127/llm-dev-kit-mcp-service:latest
 ```
 
+From the first release onward, pushing a version tag such as `v2.0.0` also publishes version-tagged images: `2.0.0`, `2.0` and `2` (for example `ghcr.io/sameeralam3127/llm-dev-kit-web:2.0`). No release has been tagged yet, so for now only `latest` and commit-SHA tags exist.
+
 `docker-compose.yml` still builds locally by default — pulling from GHCR is for running the stack without a local build (or in another environment) rather than a replacement for `docker compose up`.
 
 ## Chat UI
