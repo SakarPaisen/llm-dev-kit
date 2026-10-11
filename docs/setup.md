@@ -185,8 +185,41 @@ mypy
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest
 ```
 
-CI runs these plus the web app's typecheck, lint and build on every push and
-pull request; images are published only after it passes.
+The Chroma plugin's contract suite needs a real Chroma, which CI runs; locally
+it is skipped unless you start one:
+
+```bash
+docker run -d -p 127.0.0.1:8000:8000 chromadb/chroma:1.5.9
+LDK_TEST_CHROMA_HOST=localhost python3 -m pytest tests/plugins/test_chroma_plugin.py
+```
+
+The web app's checks, from `web/`:
+
+```bash
+npm run typecheck && npm run lint && npm test && npm run build
+npm run bench    # streaming render cost, before and after (not part of CI)
+```
+
+CI runs all of these on every push and pull request; images are published only
+after it passes.
+
+## Published images
+
+Every push to `main` publishes each service as its own image to GitHub
+Container Registry, tagged `latest` and by commit SHA, once CI passes. A
+version tag such as `v2.0.0` would also publish `2.0.0`, `2.0` and `2`; none
+has been tagged yet.
+
+```bash
+docker pull ghcr.io/sameeralam3127/llm-dev-kit-gateway:latest
+docker pull ghcr.io/sameeralam3127/llm-dev-kit-web:latest
+docker pull ghcr.io/sameeralam3127/llm-dev-kit-llm-service:latest
+docker pull ghcr.io/sameeralam3127/llm-dev-kit-rag-service:latest
+docker pull ghcr.io/sameeralam3127/llm-dev-kit-mcp-service:latest
+```
+
+`docker-compose.yml` still builds locally by default; the images are for running
+the stack elsewhere without a build.
 
 ## Scaling rag-service
 
@@ -196,8 +229,10 @@ DNS. To change the replica count at runtime:
 
 ```bash
 docker compose up -d --scale rag-service=4
-docker compose restart nginx   # re-resolve upstream IPs
 ```
+
+Nginx re-resolves the service name every 10 seconds, so new replicas get
+traffic without a restart.
 
 ## Troubleshooting
 
@@ -223,3 +258,15 @@ docker compose restart nginx   # re-resolve upstream IPs
 - **PDF retrieval returns nothing** — the PDF must contain selectable text,
   not scanned images; confirm chunks were actually indexed with the admin
   key: `curl http://localhost:8080/api/rag/documents/stats -H "Authorization: Bearer $KEY"`.
+- **`docker compose up` fails with "required variable AUTH_SECRET is
+  missing"** — expected: the session key has no default. Run
+  `echo "AUTH_SECRET=$(openssl rand -base64 32)" >> .env`.
+- **A Python service exits with `Invalid environment configuration:`** — the
+  message lists every bad variable; fix those in `.env` or the compose
+  environment.
+- **llm-service exits with `Unknown embedding dimension for Ollama model …`**
+  — `DEFAULT_EMBEDDING_MODEL` is a model llm-service does not know; set
+  `EMBEDDING_DIMENSION` to its vector length.
+- **Logs show `plugin skipped` at startup** — an installed plugin failed to
+  load; the line names the entry point and the reason. The service keeps
+  running without it.
