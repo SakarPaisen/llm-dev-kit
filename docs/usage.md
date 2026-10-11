@@ -75,9 +75,10 @@ There is no way to remove a single document.
 | `user` | chat and add documents |
 | `admin` | everything, including clearing the index and the cache |
 
-Everyone after the first account is a `user`. There is no screen to change
-roles yet; it comes with the admin dashboard
-([#17](https://github.com/sameeralam3127/llm-dev-kit/issues/17)).
+Everyone after the first account is a `user`. To change someone's role, open
+the account menu → **Admin** → **Users**. The instance always keeps at least
+one admin. The **Health** tab on the same page shows whether each service is
+up, how many chunks are indexed, and the signing key's age.
 
 ### Let other people in
 
@@ -99,7 +100,7 @@ account.
 3. Send people the address so they can create accounts.
 4. Once they have, set `ALLOW_REGISTRATION=false` and run
    `docker compose up -d` again, so nobody else can sign up. There is no
-   admin screen or invite system yet ([#17](https://github.com/sameeralam3127/llm-dev-kit/issues/17)).
+   invite system yet ([#17](https://github.com/sameeralam3127/llm-dev-kit/issues/17)).
 
 Every API needs a session or an API key, so nobody without an account can use
 your models or touch the index. Two things still need care:
@@ -179,5 +180,5 @@ stops working within a minute.
 | One shared index; no deleting a single document; re-uploads duplicate | [#15](https://github.com/sameeralam3127/llm-dev-kit/issues/15) |
 | Cached answers do not update when documents change | Clear the cache by hand (see above) |
 | When documents are indexed, every chat answers from them only | Not planned yet |
-| No admin screen, invites or role changes | [#17](https://github.com/sameeralam3127/llm-dev-kit/issues/17) |
+| No invites; the admin page has users, roles and health only | [#17](https://github.com/sameeralam3127/llm-dev-kit/issues/17) |
 | `-cloud` models leave the machine | [#13](https://github.com/sameeralam3127/llm-dev-kit/issues/13) |

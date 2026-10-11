@@ -34,8 +34,7 @@ OpenAI SDK keeps working once it has a key.
 
 The first account ever registered becomes the admin. On an existing install,
 the earliest account is promoted when the web app starts. Everyone else is a
-`user`. Changing roles from the UI arrives with the admin dashboard
-([#17](https://github.com/sameeralam3127/llm-dev-kit/issues/17)).
+`user`. An admin changes roles under account menu → **Admin** → **Users**.
 
 ### What to do
 
