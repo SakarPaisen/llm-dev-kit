@@ -6,7 +6,8 @@
 # (Next.js), which nginx reverse-proxies rather than serving from disk.
 # nginx.conf is bind-mounted by docker-compose so config changes need no rebuild.
 # The "starting up" fallback page is baked in — it's static and never changes.
-FROM nginx:1.27-alpine AS gateway
+# 1.27.3+ is needed for re-resolving upstreams (`resolve` in nginx.conf).
+FROM nginx:1.27.5-alpine AS gateway
 COPY nginx/starting.html /usr/share/nginx/html/_starting.html
 
 
