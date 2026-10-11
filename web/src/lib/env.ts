@@ -23,9 +23,21 @@ const serverSchema = z.object({
    * exposes /v1/chat/completions with retrieval-augmented answers.
    */
   LLM_BASE_URL: z.string().url().default('http://localhost:8080/api/rag/v1'),
-  LLM_API_KEY: z.string().default('sk-local'),
+  /**
+   * Only for a backend that is not this repo's rag-service (raw Ollama, a
+   * hosted API). Unset, or a `sk-local*` placeholder, means "rag-service":
+   * each request then carries the signed-in user's own access token.
+   */
+  LLM_API_KEY: z
+    .string()
+    .optional()
+    .transform((value) => (value && !value.startsWith('sk-local') ? value : undefined)),
   DEFAULT_MODEL: z.string().default('llama3.1'),
   LLM_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(120_000),
+
+  /** `iss` and `aud` of the access tokens; must match the Python services. */
+  IDENTITY_ISSUER: z.string().min(1).default('llm-dev-kit-web'),
+  IDENTITY_AUDIENCE: z.string().min(1).default('llm-dev-kit'),
 
   /** Set false to lock the instance to existing users. */
   ALLOW_REGISTRATION: z

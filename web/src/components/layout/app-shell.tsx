@@ -3,6 +3,7 @@
 import * as React from 'react'
 
 import { CommandPalette } from '@/components/command/command-palette'
+import { ApiKeysDialog } from '@/components/settings/api-keys-dialog'
 import { NewFolderDialog } from '@/components/sidebar/new-folder-dialog'
 import { Sidebar } from '@/components/sidebar/sidebar'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
@@ -29,6 +30,8 @@ export function AppShell({ user, children }: AppShellProps) {
   const setMobileSidebarOpen = useUiStore((state) => state.setMobileSidebarOpen)
   const newFolderOpen = useUiStore((state) => state.newFolderOpen)
   const setNewFolderOpen = useUiStore((state) => state.setNewFolderOpen)
+  const apiKeysOpen = useUiStore((state) => state.apiKeysOpen)
+  const setApiKeysOpen = useUiStore((state) => state.setApiKeysOpen)
 
   useGlobalShortcuts()
 
@@ -66,6 +69,7 @@ export function AppShell({ user, children }: AppShellProps) {
 
       <CommandPalette />
       <NewFolderDialog open={newFolderOpen} onOpenChange={setNewFolderOpen} />
+      <ApiKeysDialog open={apiKeysOpen} onOpenChange={setApiKeysOpen} />
     </div>
   )
 }

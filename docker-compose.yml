@@ -57,7 +57,6 @@ services:
       # Inside the network, reach rag-service directly rather than looping
       # back out through nginx.
       LLM_BASE_URL: http://rag-service:8020/v1
-      LLM_API_KEY: ${LLM_API_KEY:-sk-local}
       DEFAULT_MODEL: ${DEFAULT_CHAT_MODEL:-llama3.1}
       DATABASE_URL: file:/data/web.db
       # No default on purpose — a shipped signing key would let anyone forge a
@@ -103,6 +102,9 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-https://api.anthropic.com}
+      # Callers are verified against the web app's keys (AUTH_JWKS_URL defaults
+      # to http://web:3000/.well-known/jwks.json); see docs/v2/MIGRATION.md.
+      ALLOW_LEGACY_ANONYMOUS: ${ALLOW_LEGACY_ANONYMOUS:-false}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ulimits: *high-connection-ulimits
@@ -141,6 +143,7 @@ services:
       CHROMA_PORT: 8000
       DEFAULT_CHAT_MODEL: ${DEFAULT_CHAT_MODEL:-llama3.1}
       CACHE_TTL: ${CACHE_TTL:-3600}
+      ALLOW_LEGACY_ANONYMOUS: ${ALLOW_LEGACY_ANONYMOUS:-false}
     ulimits: *high-connection-ulimits
     depends_on:
       llm-service:
@@ -163,6 +166,9 @@ services:
       LOG_FORMAT: ${LOG_FORMAT:-json}
       LLM_SERVICE_URL: http://llm-service:8010
       RAG_SERVICE_URL: http://rag-service:8020
+      # A personal API key (account menu → API keys); every tool call acts as
+      # its owner. Without one, tool calls are refused with 401.
+      LDK_API_KEY: ${LDK_API_KEY:-}
     deploy:
       resources:
         reservations:

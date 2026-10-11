@@ -4,6 +4,7 @@ import type {
   Folder,
   ModelInfo,
 } from '@/types/chat'
+import type { ApiKeySummary, CreatedApiKey } from '@/types/api-key'
 import type {
   CreateChatInput,
   CreateFolderInput,
@@ -137,6 +138,20 @@ export const api = {
     },
   },
 
+  keys: {
+    list(signal?: AbortSignal): Promise<ApiKeySummary[]> {
+      return request('/api/keys', { signal })
+    },
+
+    create(name: string): Promise<CreatedApiKey> {
+      return request('/api/keys', { method: 'POST', body: JSON.stringify({ name }) })
+    },
+
+    revoke(keyId: string): Promise<void> {
+      return request(`/api/keys/${keyId}`, { method: 'DELETE' })
+    },
+  },
+
   auth: {
     async register(input: {
       name: string
@@ -157,4 +172,5 @@ export const queryKeys = {
   chat: (chatId: string) => ['chat', chatId] as const,
   folders: () => ['folders'] as const,
   models: () => ['models'] as const,
+  apiKeys: () => ['api-keys'] as const,
 }

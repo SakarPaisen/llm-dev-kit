@@ -8,6 +8,7 @@ import { authConfig } from '@/lib/auth/config'
 import { db } from '@/lib/db'
 import { getEnv } from '@/lib/env'
 import { loginSchema } from '@/lib/validations/auth'
+import { ensureAdmin } from '@/server/identity/admin'
 
 const BCRYPT_ROUNDS = 12
 
@@ -57,10 +58,12 @@ function buildProviders(): NextAuthConfig['providers'] {
 
   if (env.AUTH_GITHUB_ID && env.AUTH_GITHUB_SECRET) {
     providers.push(
+      // No allowDangerousEmailAccountLinking: whoever controls a GitHub
+      // account with a matching email would otherwise take over the local
+      // account. A clash now fails with OAuthAccountNotLinked.
       GitHub({
         clientId: env.AUTH_GITHUB_ID,
         clientSecret: env.AUTH_GITHUB_SECRET,
-        allowDangerousEmailAccountLinking: true,
       }),
     )
   }
@@ -72,6 +75,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(db),
   providers: buildProviders(),
+  events: {
+    // An OAuth sign-in can create the very first user.
+    async createUser() {
+      await ensureAdmin()
+    },
+  },
   secret: process.env.AUTH_SECRET,
 })
 

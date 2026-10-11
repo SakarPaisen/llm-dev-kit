@@ -23,6 +23,10 @@ interface UiState {
   /** New-folder dialog, opened from the sidebar or the palette. Never persisted. */
   newFolderOpen: boolean
   setNewFolderOpen: (open: boolean) => void
+
+  /** API keys dialog, opened from the account menu. Never persisted. */
+  apiKeysOpen: boolean
+  setApiKeysOpen: (open: boolean) => void
 }
 
 export const useUiStore = create<UiState>()(
@@ -50,6 +54,9 @@ export const useUiStore = create<UiState>()(
 
       newFolderOpen: false,
       setNewFolderOpen: (open) => set({ newFolderOpen: open }),
+
+      apiKeysOpen: false,
+      setApiKeysOpen: (open) => set({ apiKeysOpen: open }),
     }),
     {
       name: 'llm-dev-kit.ui',

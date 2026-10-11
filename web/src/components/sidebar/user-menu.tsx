@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronsUpDown, LogOut, Monitor, Moon, Sun } from 'lucide-react'
+import { ChevronsUpDown, KeyRound, LogOut, Monitor, Moon, Sun } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import * as React from 'react'
@@ -19,6 +19,7 @@ import {
 import { ROUTES } from '@/lib/constants'
 import { originOf, switchTheme, type ThemeChoice } from '@/lib/theme-transition'
 import { cn, initialsOf } from '@/lib/utils'
+import { useUiStore } from '@/stores/ui-store'
 
 interface UserMenuProps {
   user: { name: string | null; email: string | null; image: string | null }
@@ -28,6 +29,7 @@ interface UserMenuProps {
 
 export function UserMenu({ user, compact = false }: UserMenuProps) {
   const { theme, setTheme } = useTheme()
+  const setApiKeysOpen = useUiStore((state) => state.setApiKeysOpen)
   const triggerRef = React.useRef<HTMLButtonElement>(null)
 
   // `theme` is undefined until the client mounts; rendering it during hydration
@@ -91,6 +93,13 @@ export function UserMenu({ user, compact = false }: UserMenuProps) {
             System
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem onSelect={() => setApiKeysOpen(true)}>
+          <KeyRound />
+          API keys
+        </DropdownMenuItem>
 
         <DropdownMenuSeparator />
 
