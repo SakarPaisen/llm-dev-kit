@@ -80,7 +80,7 @@ export const ChatHeader = React.memo(function ChatHeader({
   }
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/90 px-3 backdrop-blur sm:px-4">
+    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-transparent bg-background/40 px-3 backdrop-blur-xl [border-image:linear-gradient(90deg,transparent,hsl(var(--glass-border)/var(--glass-border-alpha)),transparent)_1] sm:px-4">
       <Button
         variant="ghost"
         size="icon"
@@ -125,7 +125,7 @@ export const ChatHeader = React.memo(function ChatHeader({
           </Button>
         </div>
       ) : (
-        <h1 className="min-w-0 flex-1 truncate text-sm font-semibold" title={chat.title}>
+        <h1 className="min-w-0 flex-1 truncate text-sm font-semibold tracking-tight" title={chat.title}>
           {chat.title}
         </h1>
       )}

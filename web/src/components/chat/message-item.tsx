@@ -7,11 +7,11 @@ import {
   Link2,
   Pencil,
   RefreshCw,
-  Sparkles,
   Trash2,
 } from 'lucide-react'
 import * as React from 'react'
 
+import { BrandMark } from '@/components/brand/brand-mark'
 import { MessageEditor } from '@/components/chat/message-editor'
 import { VersionSwitcher } from '@/components/chat/version-switcher'
 import { Markdown } from '@/components/markdown/markdown'
@@ -160,11 +160,11 @@ export const MessageItem = React.memo(function MessageItem({
     return (
       <article
         id={`message-${message.id}`}
-        className="group flex w-full items-start justify-end gap-3 px-4 py-3 sm:px-6"
+        className="group flex w-full animate-message-in items-start justify-end gap-3 px-4 py-3 sm:px-6"
         aria-label="Your message"
       >
         <div className="flex min-w-0 max-w-[85%] flex-col items-end sm:max-w-[70%]">
-          <div className="rounded-2xl bg-primary px-4 py-2.5 text-[0.9375rem] leading-7 text-primary-foreground">
+          <div className="rounded-2xl rounded-br-md bg-aurora px-4 py-2.5 text-[0.9375rem] leading-7 text-white shadow-[0_10px_30px_-14px_hsl(var(--aurora-1)/0.8)]">
             <div className="whitespace-pre-wrap break-words">{displayed}</div>
           </div>
 
@@ -187,17 +187,17 @@ export const MessageItem = React.memo(function MessageItem({
       id={`message-${message.id}`}
       // `group` drives the hover-reveal of the action row on pointer devices;
       // focus-within keeps it reachable by keyboard.
-      className="group flex w-full gap-3 px-4 py-5 sm:px-6"
+      className="group flex w-full animate-message-in gap-3 px-4 py-5 sm:px-6"
       aria-label="Assistant response"
     >
-      <MessageAvatar isUser={false} user={user} />
+      <BrandMark size="sm" animated={isStreaming} className="mt-0.5" />
 
       <div className="min-w-0 flex-1">
         <header className="mb-1 flex items-center gap-2">
           <h3 className="text-sm font-semibold">Assistant</h3>
 
           {message.model && (
-            <span className="truncate font-mono text-xs text-muted-foreground">
+            <span className="truncate rounded-full border bg-foreground/[0.03] px-2 py-0.5 font-mono text-[10px] text-muted-foreground glass-border">
               {message.model}
             </span>
           )}
@@ -251,16 +251,7 @@ function MessageAvatar({
   isUser: boolean
   user?: { name: string | null; image: string | null; email: string | null }
 }) {
-  if (!isUser) {
-    return (
-      <div
-        aria-hidden="true"
-        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-violet-500 text-white shadow-sm"
-      >
-        <Sparkles className="size-4" />
-      </div>
-    )
-  }
+  if (!isUser) return <BrandMark size="sm" />
 
   return (
     <Avatar className="shrink-0">
@@ -302,14 +293,17 @@ function ActionButton({
 
 function ThinkingIndicator() {
   return (
-    <div className="flex items-center gap-1.5 py-1" aria-label="Generating response">
-      {[0, 150, 300].map((delay) => (
-        <span
-          key={delay}
-          className="size-1.5 animate-pulse rounded-full bg-muted-foreground/60"
-          style={{ animationDelay: `${delay}ms` }}
-        />
-      ))}
+    <div className="flex items-center gap-2 py-1" role="status">
+      <span className="text-shimmer text-sm font-medium">Thinking</span>
+      <span className="flex gap-1" aria-hidden="true">
+        {[0, 160, 320].map((delay) => (
+          <span
+            key={delay}
+            className="size-1 animate-bounce rounded-full bg-aurora"
+            style={{ animationDelay: `${delay}ms` }}
+          />
+        ))}
+      </span>
     </div>
   )
 }
