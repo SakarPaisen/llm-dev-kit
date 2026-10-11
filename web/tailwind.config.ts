@@ -77,11 +77,28 @@ const config: Config = {
         shimmer: {
           '100%': { transform: 'translateX(100%)' },
         },
+        // A message arriving: a short rise and fade.
+        'message-in': {
+          from: { opacity: '0', transform: 'translateY(8px)' },
+          to: { opacity: '1', transform: 'none' },
+        },
+        // The active chat's accent bar growing from its centre.
+        'accent-in': {
+          from: { transform: 'scaleY(0)', opacity: '0' },
+          to: { transform: 'scaleY(1)', opacity: '1' },
+        },
+        'rise-in': {
+          from: { opacity: '0', transform: 'translateY(12px) scale(0.98)' },
+          to: { opacity: '1', transform: 'none' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'caret-blink': 'caret-blink 1s ease-out infinite',
+        'message-in': 'message-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both',
+        'accent-in': 'accent-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both',
+        'rise-in': 'rise-in 500ms cubic-bezier(0.2, 0.8, 0.2, 1) both',
       },
     },
   },

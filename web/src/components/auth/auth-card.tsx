@@ -18,7 +18,7 @@ export function AuthCard({
   return (
     <div
       className={cn(
-        'rounded-xl border border-border bg-card p-6 shadow-sm',
+        'rounded-xl border bg-card p-6 shadow-sm',
         className,
       )}
     >
@@ -30,7 +30,7 @@ export function AuthCard({
       {children}
 
       {footer && (
-        <div className="mt-5 border-t border-border pt-4 text-center text-sm text-muted-foreground">
+        <div className="mt-5 border-t pt-4 text-center text-sm text-muted-foreground">
           {footer}
         </div>
       )}

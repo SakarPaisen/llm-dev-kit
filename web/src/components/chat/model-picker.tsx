@@ -45,7 +45,7 @@ export function ModelPicker({ value, onChange, disabled }: ModelPickerProps) {
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>
       <SelectTrigger
-        className="h-8 w-auto min-w-[10rem] max-w-[16rem] gap-1.5 rounded-full border border-border bg-muted/60 px-3 text-xs font-medium shadow-none hover:bg-muted"
+        className="h-8 w-auto min-w-[10rem] max-w-[16rem] gap-1.5 rounded-md border bg-background px-3 text-xs font-medium shadow-none transition-colors hover:bg-accent"
         aria-label="Model"
       >
         <Cpu className="size-3.5 shrink-0 opacity-70" />

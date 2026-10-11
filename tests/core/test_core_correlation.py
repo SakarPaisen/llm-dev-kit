@@ -119,3 +119,12 @@ def test_works_inside_a_real_fastapi_app() -> None:
 
     minted = client.get("/whoami")
     assert minted.headers["x-request-id"] == minted.json()["correlation_id"]
+
+
+def test_outgoing_headers_carry_the_current_id() -> None:
+    from ldk_core.observability import outgoing_headers
+
+    assert outgoing_headers() == {}
+    with correlation_scope("trace-9"):
+        assert outgoing_headers() == {"X-Request-ID": "trace-9"}
+    assert outgoing_headers() == {}

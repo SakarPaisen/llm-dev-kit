@@ -109,7 +109,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
         )}
       </div>
 
-      <Button type="submit" className="w-full gap-2" disabled={isPending}>
+      <Button type="submit" className="h-10 w-full gap-2" disabled={isPending}>
         {isPending && <Loader2 className="size-4 animate-spin" />}
         {isPending ? 'Signing in…' : 'Sign in'}
       </Button>

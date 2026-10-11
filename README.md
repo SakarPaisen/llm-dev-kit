@@ -141,15 +141,16 @@ The frontend is a **Next.js** application ([web/](web/)) running as its own cont
 
 - **Accounts** — email/password sign-in (optional GitHub OAuth), so history is per-user rather than per-browser.
 - **Streaming responses** — tokens render as they arrive over SSE, with a stop button; a partial answer is persisted even if you stop it or the model host dies mid-sentence. Only the growing part of the answer re-renders each frame, so long answers stay smooth.
-- **Multiple sessions and folders** — persistent history, colour-coded folders, pinning, and search across titles and message bodies.
+- **Multiple sessions and folders** — persistent history, colour-coded folders, pinning, and chats grouped by when you last used them (Pinned, Today, Yesterday, Previous 7 / 30 days, Older). The sidebar collapses to an icon rail.
+- **Command palette** — <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> searches every chat, titles and message bodies, and runs actions (new chat, new folder, theme, sidebar) without leaving the keyboard. Also <kbd>⇧⌘O</kbd> for a new chat and <kbd>⌘B</kbd> to collapse the sidebar.
 - **Edit and regenerate** — editing a message rewinds the conversation to that turn and regenerates; replaced answers are archived and reachable through a `‹ 2/3 ›` control rather than lost.
 - **Markdown and syntax highlighting** — GitHub-flavoured Markdown, per-block code copy and soft-wrap toggle. The highlighter loads only when an answer contains code, and a code block is coloured once it closes.
 - **Sharing** — publish any conversation as a read-only link, revocable at any time.
-- **Dark & light mode** — follows your OS preference, toggleable, remembered.
+- **Enterprise theme**: neutral surfaces and one blue accent, in light, dark and system modes (system by default, remembered per browser). Text and the accent meet WCAG AA contrast in both themes. Motion is minimal and CSS-only, and it stops when your system asks for reduced motion.
 
 Answers come from `rag-service`, grounded in your indexed PDFs — the retrieval pipeline is unchanged. The model picker is fed by `rag-service`'s `/v1/models`, which lists local Ollama models plus whichever cloud models are configured (see [Configuration & Cloud LLMs](#configuration--cloud-llms)).
 
-> **Note:** three things from the project's earlier static UI didn't carry over as-is: in-chat PDF upload (ingestion still works via `POST /api/rag/ingest/pdf`), the cache badge and one-click cache clear, and pasting a cloud API key from the browser — that's now a server-side setting instead. Upload in the UI returns with per-user ingestion ([#15](https://github.com/sameeralam3127/llm-dev-kit/issues/15)).
+> **Note:** three things from the project's earlier static UI didn't carry over as-is: in-chat PDF upload (ingestion still works via `POST /api/rag/ingest/pdf`), the cache badge and one-click cache clear, and pasting a cloud API key from the browser — that's now a server-side setting instead. Upload in the UI returns with per-user ingestion ([#15](https://github.com/sameeralam3127/llm-dev-kit/issues/15)). [docs/usage.md](docs/usage.md) walks through adding documents and chatting today.
 
 For frontend development with hot reload:
 
@@ -359,6 +360,7 @@ Full walkthrough and more failure modes: [docs/setup.md](docs/setup.md).
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System diagrams, request flows, and the Docker build strategy |
 | [docs/v2/PLAN.md](docs/v2/PLAN.md) | The v2 plan: target architecture, interfaces, migration and phases |
 | [docs/setup.md](docs/setup.md) | Step-by-step setup, PDF ingestion, and troubleshooting |
+| [docs/usage.md](docs/usage.md) | Adding documents, chatting, and letting other people in |
 | [web/README.md](web/README.md) | Frontend architecture, environment variables, and feature detail |
 
 ## License

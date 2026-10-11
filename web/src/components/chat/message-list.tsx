@@ -56,7 +56,7 @@ export function MessageList({
         aria-label="Conversation"
         tabIndex={0}
       >
-        <div className="mx-auto w-full max-w-3xl divide-y divide-border/60">
+        <div className="mx-auto w-full max-w-3xl">
           {messages.map((message, index) => (
             <MessageItem
               key={message.id}

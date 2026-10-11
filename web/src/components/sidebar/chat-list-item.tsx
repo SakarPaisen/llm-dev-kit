@@ -4,7 +4,6 @@ import { formatDistanceToNow } from 'date-fns'
 import {
   Check,
   FolderInput,
-  MessageSquare,
   MoreHorizontal,
   Pencil,
   Pin,
@@ -39,6 +38,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useDeleteChat, useUpdateChat } from '@/hooks/use-chats'
 import { folderColor, ROUTES } from '@/lib/constants'
+import { shortAge } from '@/lib/date-groups'
 import { cn } from '@/lib/utils'
 import type { ChatSummary, Folder } from '@/types/chat'
 
@@ -77,7 +77,7 @@ export function ChatListItem({
   if (isRenaming) {
     return (
       <li className="px-2">
-        <div className="flex items-center gap-1 rounded-md bg-sidebar-accent px-1.5 py-1">
+        <div className="flex items-center gap-1 rounded-lg bg-sidebar-accent px-1.5 py-1 ring-1 ring-primary/40">
           <input
             autoFocus
             value={draft}
@@ -120,19 +120,25 @@ export function ChatListItem({
         onClick={onNavigate}
         aria-current={isActive ? 'page' : undefined}
         className={cn(
-          'flex items-center gap-2 rounded-md py-2 pl-2 pr-8 text-sm transition-colors',
+          'relative flex items-center gap-2 rounded-lg py-[7px] pl-3 pr-2 text-[13px] transition-colors',
           isActive
-            ? 'bg-primary/10 font-medium text-primary'
-            : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground',
+            ? 'bg-sidebar-accent font-medium text-foreground'
+            : 'text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground',
         )}
       >
-        {chat.pinned ? (
-          <Pin className="size-3.5 shrink-0 fill-current opacity-70" />
-        ) : (
-          <MessageSquare className="size-3.5 shrink-0 opacity-70" />
+        {isActive && (
+          <span
+            aria-hidden="true"
+            className="absolute inset-y-1.5 left-0 w-[3px] animate-accent-in rounded-full bg-primary"
+          />
         )}
+        {chat.pinned && <Pin className="size-3 shrink-0 fill-current text-primary" />}
 
         <span className="min-w-0 flex-1 truncate">{chat.title}</span>
+        {/* Makes way for the options button on hover and focus. */}
+        <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground/70 transition-opacity group-focus-within/item:opacity-0 group-hover/item:opacity-0 [@media(pointer:coarse)]:opacity-0">
+          {shortAge(chat.updatedAt)}
+        </span>
       </Link>
 
       <div
@@ -148,7 +154,7 @@ export function ChatListItem({
             <Button
               variant="ghost"
               size="icon-sm"
-              className="size-6 hover:bg-background"
+              className="size-6 hover:bg-foreground/10"
             >
               <MoreHorizontal className="size-3.5" />
               <span className="sr-only">Options for {chat.title}</span>

@@ -12,75 +12,96 @@
     --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
+    /* Enterprise, light: neutral slate surfaces and one blue accent. Colours
+       are HSL triplets so Tailwind can add alpha. Primary is #2563eb, which
+       keeps white text above 5:1. */
     --background: 0 0% 100%;
-    --foreground: 224 12% 12%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 12% 12%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 12% 12%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 231 84% 56%;
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 96%;
-    --secondary-foreground: 224 12% 20%;
+    --secondary-foreground: 222 47% 11%;
 
     --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted-foreground: 220 9% 40%;
 
-    --accent: 220 14% 94%;
-    --accent-foreground: 224 12% 16%;
+    --accent: 220 14% 95%;
+    --accent-foreground: 222 47% 11%;
 
     --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 89%;
-    --input: 220 13% 87%;
-    --ring: 231 84% 56%;
+    --border: 220 13% 90%;
+    --input: 220 13% 84%;
+    --ring: 221 83% 53%;
 
-    --sidebar: 222 26% 96%;
-    --sidebar-foreground: 224 12% 20%;
-    --sidebar-accent: 220 14% 92%;
+    --sidebar: 220 20% 98%;
+    --sidebar-foreground: 222 30% 18%;
+    --sidebar-accent: 220 14% 93%;
     --sidebar-border: 220 13% 90%;
 
-    --radius: 0.85rem;
+    /* Panels over the page: near-opaque, with a hairline border. */
+    --glass: 0 0% 100%;
+    --glass-alpha: 0.94;
+    --glass-border: 220 13% 88%;
+    --glass-border-alpha: 1;
+
+    /* The faint dot grid behind the auth and share pages. */
+    --grid-alpha: 0.07;
+
+    --radius: 0.625rem;
   }
 
+  /* Dark: a light blue (#579dff) under near-black text, as in Atlassian's dark
+     theme, so the accent passes contrast both as a fill and as link text. */
   .dark {
-    --background: 224 14% 9%;
-    --foreground: 220 14% 92%;
+    --background: 220 16% 7%;
+    --foreground: 210 20% 95%;
 
-    --card: 224 14% 11%;
-    --card-foreground: 220 14% 92%;
+    --card: 220 14% 10%;
+    --card-foreground: 210 20% 95%;
 
-    --popover: 224 14% 12%;
-    --popover-foreground: 220 14% 92%;
+    --popover: 220 14% 11%;
+    --popover-foreground: 210 20% 95%;
 
-    --primary: 231 91% 68%;
-    --primary-foreground: 224 20% 8%;
+    --primary: 215 100% 67%;
+    --primary-foreground: 210 13% 12%;
 
-    --secondary: 223 12% 18%;
-    --secondary-foreground: 220 14% 90%;
+    --secondary: 220 12% 15%;
+    --secondary-foreground: 210 20% 92%;
 
-    --muted: 223 12% 17%;
-    --muted-foreground: 220 9% 62%;
+    --muted: 220 12% 14%;
+    --muted-foreground: 218 11% 65%;
 
-    --accent: 223 12% 20%;
-    --accent-foreground: 220 14% 94%;
+    --accent: 220 12% 16%;
+    --accent-foreground: 210 20% 96%;
 
-    --destructive: 0 72% 58%;
+    --destructive: 0 72% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 223 12% 20%;
-    --input: 223 12% 24%;
-    --ring: 231 91% 68%;
+    --border: 220 12% 17%;
+    --input: 220 12% 22%;
+    --ring: 215 100% 67%;
 
-    --sidebar: 224 14% 11%;
-    --sidebar-foreground: 220 14% 88%;
-    --sidebar-accent: 223 12% 18%;
-    --sidebar-border: 223 12% 18%;
+    --sidebar: 220 16% 9%;
+    --sidebar-foreground: 210 16% 90%;
+    --sidebar-accent: 220 12% 16%;
+    --sidebar-border: 220 12% 15%;
+
+    --glass: 220 14% 10%;
+    --glass-alpha: 0.94;
+    --glass-border: 220 12% 18%;
+    --glass-border-alpha: 1;
+
+    --grid-alpha: 0.06;
   }
 
   * {
@@ -226,10 +247,14 @@
   @apply max-w-full rounded-md border border-border;
 }
 
-/* The caret that trails a streaming answer. */
-.streaming-caret::after {
+/* The caret that trails a streaming answer: at the end of the last paragraph,
+   heading or list item when there is one, otherwise after the whole answer. */
+.streaming-caret > :is(p, h1, h2, h3, h4, h5, h6, blockquote):last-child::after,
+.streaming-caret > :is(ul, ol):last-child > li:last-child::after,
+.streaming-caret:not(:has(> :is(p, h1, h2, h3, h4, h5, h6, blockquote, ul, ol):last-child))::after {
   content: '';
-  @apply ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 animate-caret-blink bg-foreground align-baseline;
+  @apply ml-0.5 inline-block h-4 w-[3px] translate-y-0.5 animate-caret-blink rounded-full align-baseline;
+  background-color: hsl(var(--primary));
 }
 
 /* ---------------------------------------------------------------------------
@@ -342,6 +367,87 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Surfaces and accents. Flat colour, hairline borders, no glow: everything
+   here is quiet enough for a corporate desktop. The only loop is the
+   "Thinking" sweep, and it stops under prefers-reduced-motion (below).
+--------------------------------------------------------------------------- */
+
+@layer components {
+  .glass {
+    background-color: hsl(var(--glass) / var(--glass-alpha));
+    border-color: hsl(var(--glass-border) / var(--glass-border-alpha));
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+
+  .glass-border {
+    border-color: hsl(var(--glass-border) / var(--glass-border-alpha));
+  }
+
+  /* The accent as a fill, for primary actions and selection markers. */
+  .bg-brand {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  /* "Thinking": a light sweep across muted text. */
+  .text-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      hsl(var(--muted-foreground)) 0%,
+      hsl(var(--muted-foreground)) 35%,
+      hsl(var(--foreground)) 50%,
+      hsl(var(--muted-foreground)) 65%,
+      hsl(var(--muted-foreground)) 100%
+    );
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: text-shimmer 2.2s linear infinite;
+  }
+}
+
+@keyframes text-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -150% 0;
+  }
+}
+
+/* A faint, static dot grid that fades out from the top. */
+.page-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(hsl(var(--foreground) / var(--grid-alpha)) 1px, transparent 1px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 55% at 50% 0%, black, transparent);
+  mask-image: radial-gradient(ellipse 80% 55% at 50% 0%, black, transparent);
+}
+
+/* Theme switches reveal the new theme as a growing circle (see
+   lib/theme-transition.ts); the default cross-fade is turned off for it. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
 }

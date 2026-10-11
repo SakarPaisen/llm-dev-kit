@@ -64,9 +64,10 @@ export const Composer = React.memo(function Composer({
   }
 
   return (
-    <div className="bg-background/80 backdrop-blur">
+    // Fades the conversation out under the floating composer.
+    <div className="bg-gradient-to-t from-background via-background/85 to-transparent pt-6">
       <form
-        className="mx-auto w-full max-w-3xl px-4 py-3 sm:px-6"
+        className="mx-auto w-full max-w-3xl px-4 pb-3 sm:px-6"
         onSubmit={(event) => {
           event.preventDefault()
           submit()
@@ -74,8 +75,8 @@ export const Composer = React.memo(function Composer({
       >
         <div
           className={cn(
-            'flex items-end gap-2 rounded-3xl border border-input bg-background p-2 shadow-md transition-colors',
-            'focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30',
+            'flex items-end gap-2 rounded-xl border bg-card p-2 shadow-sm transition-[border-color,box-shadow]',
+            'focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/15',
             disabled && 'opacity-60',
           )}
         >
@@ -102,7 +103,7 @@ export const Composer = React.memo(function Composer({
               size="icon"
               variant="secondary"
               onClick={onStop}
-              className="shrink-0 rounded-full"
+              className="shrink-0 rounded-lg"
             >
               <Square className="fill-current" />
               <span className="sr-only">Stop generating</span>
@@ -112,7 +113,7 @@ export const Composer = React.memo(function Composer({
               type="submit"
               size="icon"
               disabled={!canSend}
-              className="shrink-0 rounded-full"
+              className="shrink-0 rounded-lg disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
             >
               <ArrowUp />
               <span className="sr-only">Send message</span>

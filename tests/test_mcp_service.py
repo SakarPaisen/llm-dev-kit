@@ -70,6 +70,7 @@ class Services:
 
     def __init__(self) -> None:
         self.chats: list[dict[str, Any]] = []
+        self.request_ids: list[str | None] = []
         self.down = False
 
     def transport(self) -> httpx.MockTransport:
@@ -78,6 +79,7 @@ class Services:
     def handle(self, request: httpx.Request) -> httpx.Response:
         if self.down:
             raise httpx.ConnectError("connection refused", request=request)
+        self.request_ids.append(request.headers.get("x-request-id"))
         if request.url.path == "/models":
             return httpx.Response(200, json={"models": ["llama3.1", "openai/gpt-4o"]})
         if request.url.path == "/chat":
@@ -170,3 +172,14 @@ def test_real_build_registry_configures_both_tools(monkeypatch: pytest.MonkeyPat
     assert set(tools) == {"list_models", "ask_llm_dev_kit"}
     assert tools["list_models"].base_url == "http://llm.test:8010"
     assert tools["ask_llm_dev_kit"].base_url == "http://rag.test:8020"
+
+
+def test_each_tool_call_carries_its_own_request_id(services: Services) -> None:
+    async def calls(session):
+        await session.call_tool("list_models", {})
+        await session.call_tool("ask_llm_dev_kit", {"message": "hello"})
+
+    asyncio.run(_session_run(services, calls))
+    first, second = services.request_ids
+    assert first and second and first != second
+    assert len(first) == 32  # minted per call, since stdio carries no headers

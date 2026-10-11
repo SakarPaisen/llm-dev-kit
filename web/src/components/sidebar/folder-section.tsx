@@ -76,7 +76,7 @@ export function FolderSection({
     <Collapsible open={isExpanded} onOpenChange={onToggle}>
       <div className="group/folder relative px-2">
         {isRenaming ? (
-          <div className="flex items-center gap-1 rounded-md bg-sidebar-accent px-2 py-1">
+          <div className="flex items-center gap-1 rounded-lg bg-sidebar-accent px-2 py-1 ring-1 ring-primary/40">
             <span className={cn('size-2 shrink-0 rounded-full', color.dot)} />
             <input
               autoFocus
@@ -97,8 +97,8 @@ export function FolderSection({
         ) : (
           <CollapsibleTrigger
             className={cn(
-              'flex w-full items-center gap-1.5 rounded-md py-1.5 pl-1 pr-8 text-xs font-medium transition-colors',
-              'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground',
+              'flex w-full items-center gap-2 rounded-lg py-[7px] pl-2 pr-8 text-[13px] font-medium transition-colors',
+              'text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground',
             )}
           >
             <ChevronRight
@@ -108,7 +108,9 @@ export function FolderSection({
               )}
               aria-hidden="true"
             />
-            <span className={cn('size-2 shrink-0 rounded-full', color.dot)} />
+            <span
+              className={cn('size-2 shrink-0 rounded-full', color.dot)}
+            />
             <span className="min-w-0 flex-1 truncate text-left">{folder.name}</span>
             <span className="shrink-0 tabular-nums opacity-60">{chats.length}</span>
           </CollapsibleTrigger>
@@ -126,7 +128,7 @@ export function FolderSection({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="size-6 hover:bg-background"
+                className="size-6 hover:bg-foreground/10"
               >
                 <MoreHorizontal className="size-3.5" />
                 <span className="sr-only">Options for folder {folder.name}</span>

@@ -15,6 +15,14 @@ interface UiState {
 
   expandedFolderIds: string[]
   toggleFolder: (folderId: string) => void
+
+  /** Command palette (⌘K). Never persisted. */
+  paletteOpen: boolean
+  setPaletteOpen: (open: boolean) => void
+
+  /** New-folder dialog, opened from the sidebar or the palette. Never persisted. */
+  newFolderOpen: boolean
+  setNewFolderOpen: (open: boolean) => void
 }
 
 export const useUiStore = create<UiState>()(
@@ -36,6 +44,12 @@ export const useUiStore = create<UiState>()(
             : [...current, folderId],
         })
       },
+
+      paletteOpen: false,
+      setPaletteOpen: (open) => set({ paletteOpen: open }),
+
+      newFolderOpen: false,
+      setNewFolderOpen: (open) => set({ newFolderOpen: open }),
     }),
     {
       name: 'llm-dev-kit.ui',

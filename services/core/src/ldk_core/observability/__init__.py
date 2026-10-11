@@ -5,6 +5,7 @@ from ldk_core.observability.correlation import (
     correlation_scope,
     get_correlation_id,
     new_correlation_id,
+    outgoing_headers,
 )
 from ldk_core.observability.logging import configure_logging, get_logger
 
@@ -15,4 +16,5 @@ __all__ = [
     "get_correlation_id",
     "get_logger",
     "new_correlation_id",
+    "outgoing_headers",
 ]
