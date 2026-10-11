@@ -29,8 +29,11 @@ embeddings always run locally.
 cp .env.example .env
 ```
 
-Everything works fully offline with the defaults. The sections in `.env` map
-to:
+The sections in `.env` map to the table below. One thing to change for the
+Docker stack: `.env.example` sets `OLLAMA_HOST=http://localhost:11434`, which
+suits services run directly on your machine; inside Docker, `localhost` is the
+container itself. With Ollama on the host, remove that line so Compose uses its
+default, `http://host.docker.internal:11434`.
 
 | Section | Purpose |
 | --- | --- |
@@ -204,8 +207,13 @@ docker compose restart nginx   # re-resolve upstream IPs
   the usual causes) — bring it back with `docker compose up -d` and re-check
   `docker compose ps` for `healthy` status.
 - **"no local models found" in the model picker** — check Ollama is running
-  (`ollama list`) and reachable from Docker; the connection URL is
-  `http://host.docker.internal:11434` by default.
+  (`ollama list`) and reachable from Docker. Compose defaults to
+  `http://host.docker.internal:11434`, but an `OLLAMA_HOST=http://localhost:11434`
+  line copied from `.env.example` overrides that and points the container at
+  itself: remove it.
+- **The app can't be reached from another machine** — expected: the gateway
+  binds to `127.0.0.1`. Set `GATEWAY_BIND=0.0.0.0` in `.env` (with
+  `ALLOW_REGISTRATION=false`) and run `docker compose up -d`.
 - **Cloud model errors** — `401` means no/invalid API key: set it in `.env`
   or pass `api_key` per request.
 - **PDF retrieval returns nothing** — the PDF must contain selectable text,

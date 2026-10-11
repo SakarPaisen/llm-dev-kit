@@ -40,13 +40,13 @@ Every swappable piece — model providers, embeddings, the vector store, documen
 ## Highlights
 
 - **Full chat application** — a Next.js app ([web/](web/)) with accounts, streaming responses, persistent per-user history, chat folders, edit/regenerate with version history, Markdown + syntax highlighting, and revocable share links.
-- **Nginx gateway** — the single published entrypoint (`:8080`); reverse-proxies the web app and round-robins across `rag-service` replicas. Comes up within seconds of `docker compose up` and serves a branded fallback page while the backend finishes warming up, instead of a blank tab or a raw connection error.
+- **Nginx gateway** — the single published entrypoint (`:8080`, bound to `127.0.0.1` by default); reverse-proxies the web app and round-robins across `rag-service` replicas. Comes up within seconds of `docker compose up` and serves a branded fallback page while the backend finishes warming up, instead of a blank tab or a raw connection error.
 - **llm-service** — one API for every model: local Ollama by default, or `openai/<model>`, `gemini/<model>` and `anthropic/<model>` routed through **LiteLLM** with true token streaming. Each provider is a plugin; installing another one makes its `prefix/` routable.
 - **rag-service** (2 replicas) — chat with retrieval over ChromaDB (your uploaded PDFs), streaming chat, PDF ingestion, a Redis response cache, and an **OpenAI-compatible `/v1` API** that works with any OpenAI SDK — including LangChain.
 - **mcp-service** — every installed tool plugin exposed over MCP, for use from any MCP-compatible client.
 - **Plugin core** — `ldk_core` defines the interfaces (LLM provider, embedder, vector store, loader, chunker, tool, auth, rate limiter, storage), discovers plugins through Python entry points, and ships a contract test suite per interface that every implementation must pass.
 - **Operable services** — one JSON error shape across the Python services and the web app, structured JSON logs with a request id on every line, and configuration that fails at startup with every bad variable named.
-- **Production-minded Docker setup** — pinned image versions (no floating `:latest` tags), BuildKit cache-mount builds (a `requirements.txt` change reinstalls in seconds, not minutes), per-service CPU/memory limits and reservations, non-root containers, and stdlib healthchecks. See [ARCHITECTURE.md](ARCHITECTURE.md) for the full build strategy.
+- **Production-minded Docker setup** — `docker-compose.yml` runs the code baked into each image; hot reload is a separate, opt-in `compose.dev.yml` overlay. Only the gateway is published, on localhost. Third-party images are pinned to exact releases (Redis, Chroma, Ollama) and Dockerfile base images to a release line (`nginx:1.27`, `python:3.12`, `node:22`) so security patches still arrive — no floating `:latest`. Also: BuildKit cache-mount builds (a `requirements.txt` change reinstalls in seconds, not minutes), per-service CPU/memory limits and reservations, non-root Python and web images, and healthchecks that need no extra tools. See [ARCHITECTURE.md](ARCHITECTURE.md) for the full build strategy.
 
 ## Requirements
 
@@ -77,7 +77,9 @@ Every swappable piece — model providers, embeddings, the vector store, documen
    echo "AUTH_SECRET=$(openssl rand -base64 32)" >> .env
    ```
 
-   `AUTH_SECRET` signs the web app's session cookies and has no default on purpose — the stack refuses to start without it. Everything else works offline with the defaults; cloud keys are optional.
+   `AUTH_SECRET` signs the web app's session cookies and has no default on purpose — the stack refuses to start without it. Cloud keys are optional.
+
+   One setting to check: `.env.example` sets `OLLAMA_HOST=http://localhost:11434`, which is right when you run the Python services directly on your machine but wrong inside Docker, where `localhost` is the container itself. For the Docker stack with Ollama on the host, remove that line from `.env`; Compose then uses `http://host.docker.internal:11434`.
 
 3. **Run the stack**:
 
@@ -104,22 +106,22 @@ The next major version turns the kit into a sovereign, local-first private AI wo
 | | 3 — Sovereign mode · 4 — Auth · 5 — Per-user ingestion on pgvector | |
 | | 6 — Limits, observability, audit · 7 — Admin · 8 — Plugin marketplace · 9 — Distribution | |
 
-Until Phase 4, the Python APIs (including `/v1`) are unauthenticated: keep the stack on a trusted network.
+Until Phase 4, the Python APIs (including `/v1` and PDF ingest) have no authentication and anyone who can reach the app can register an account. That is why the gateway listens on `127.0.0.1` by default: only this machine can reach it. Setting `GATEWAY_BIND=0.0.0.0` in `.env` opens all of it to your network; if you do, also set `ALLOW_REGISTRATION=false`.
 
 ## Services
 
 | Service | Port (internal) | Purpose |
 | --- | ---: | --- |
-| `nginx` | `8080` (published) | Gateway + load balancer, the only published port |
+| `nginx` | `8080` (published on `127.0.0.1`) | Gateway + load balancer, the only published port; `GATEWAY_BIND` widens it |
 | `web` | 3000 | Next.js chat app — accounts, history, folders, sharing |
 | `llm-service` | 8010 | Model routing over the LLM and embedder plugins: Ollama (offline) + cloud via LiteLLM |
 | `rag-service` ×2 | 8020 | RAG chat (+streaming), `/v1` OpenAI-compatible API, PDF ingest, cache |
 | `mcp` | stdio | MCP server for every tool plugin (profile `mcp`) |
-| `redis` / `chroma` | 6379 / 8000 | Infrastructure |
+| `redis` / `chroma` | 6379 / 8000 | Infrastructure; not published, reachable only on the Compose network |
 
-Every service builds off its own Dockerfile stage with only the dependencies it needs, runs as a non-root user, and carries a CPU/memory limit sized to its actual workload — see [ARCHITECTURE.md](ARCHITECTURE.md#docker-build-strategy) for the full breakdown.
+Each of the project's own services builds off its own Dockerfile stage with only the dependencies it needs, and every container carries a CPU/memory limit sized to its actual workload. The Python and web images run as non-root users; the gateway uses the stock nginx image. See [ARCHITECTURE.md](ARCHITECTURE.md#docker-build-strategy) for the full breakdown.
 
-Each one is also published as its own image to GitHub Container Registry on every push to `main` ([.github/workflows/publish.yml](.github/workflows/publish.yml)), tagged `latest` and by commit SHA — but only after CI (lint, typecheck, tests, and a build-and-start check of every image) passes:
+Each one is also published as its own image to GitHub Container Registry on every push to `main` ([.github/workflows/publish.yml](.github/workflows/publish.yml)), tagged `latest` and by commit SHA — but only after CI (lint, typecheck, tests, and a build-and-start check of the Python and web images) passes:
 
 ```bash
 docker pull ghcr.io/sameeralam3127/llm-dev-kit-gateway:latest
@@ -323,7 +325,7 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest
 
 # the Chroma plugin's contract suite needs a real Chroma (CI runs one);
 # without this it is skipped
-docker run -d -p 8000:8000 chromadb/chroma:1.5.9
+docker run -d -p 127.0.0.1:8000:8000 chromadb/chroma:1.5.9
 LDK_TEST_CHROMA_HOST=localhost python3 -m pytest tests/plugins/test_chroma_plugin.py
 
 # web app — the gate before any change lands
@@ -331,7 +333,7 @@ cd web && npm run typecheck && npm run lint && npm test && npm run build
 npm run bench    # streaming render cost, before/after (not part of CI)
 ```
 
-CI runs all of this on every push and pull request, plus a job that builds each Python image, starts it and waits for `/health`.
+CI runs all of this on every push and pull request (`tests/test_compose.py` included, which keeps every port but the gateway's unpublished), plus a job that builds the Python and web images, starts each one and waits for it to answer.
 
 ## Troubleshooting
 
@@ -340,7 +342,8 @@ CI runs all of this on every push and pull request, plus a job that builds each 
 | `docker compose up` fails immediately with `"required variable AUTH_SECRET is missing"` | Expected — the web app's session key has no default. Run `echo "AUTH_SECRET=$(openssl rand -base64 32)" >> .env`. |
 | Nothing loads at `localhost:8080` | Run `docker compose ps`; if services show `Exited`, the stack stopped (Docker Desktop restart, host sleep, or a manual `down`/`stop`) and needs `docker compose up -d`. |
 | Signed in, but every message errors | The web app reaches `rag-service` directly at `http://rag-service:8020/v1`. Check `docker compose logs -f web rag-service`; a `503` here means the RAG service is not healthy yet. |
-| "no local models found" in the model picker | Check Ollama is running (`ollama list`) and reachable from Docker; the connection URL is `http://host.docker.internal:11434` by default. |
+| "no local models found" in the model picker | Check Ollama is running (`ollama list`) and reachable from Docker. Compose defaults to `http://host.docker.internal:11434`, but an `OLLAMA_HOST=http://localhost:11434` line copied from `.env.example` overrides that and points the container at itself: remove it. |
+| The app can't be reached from another machine | Expected: the gateway binds to `127.0.0.1`. Set `GATEWAY_BIND=0.0.0.0` in `.env` (and `ALLOW_REGISTRATION=false`), then `docker compose up -d`. |
 | Cloud model errors | `401` means no/invalid API key: set it in `.env` or pass `api_key` per request. |
 | PDF retrieval returns nothing | The PDF must contain selectable text, not scanned images. |
 | A Python service exits at startup with `Invalid environment configuration:` | The message lists every bad variable; fix those in `.env` (or the compose environment). |
