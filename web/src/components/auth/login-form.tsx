@@ -12,12 +12,14 @@ import { loginSchema } from '@/lib/validations/auth'
 
 interface LoginFormProps {
   callbackUrl: string
+  /** A message from a failed external sign-in, shown on arrival. */
+  initialError?: string
 }
 
-export function LoginForm({ callbackUrl }: LoginFormProps) {
+export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
   const router = useRouter()
   const [isPending, setIsPending] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
+  const [error, setError] = React.useState<string | null>(initialError ?? null)
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({})
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

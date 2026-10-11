@@ -1,6 +1,6 @@
 'use client'
 
-import { Github } from 'lucide-react'
+import { Building2, Github } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import * as React from 'react'
 
@@ -8,29 +8,49 @@ import { Button } from '@/components/ui/button'
 
 interface OAuthButtonsProps {
   github: boolean
+  /** Single sign-on through the organisation's Keycloak. */
+  sso?: boolean
   callbackUrl: string
 }
 
-export function OAuthButtons({ github, callbackUrl }: OAuthButtonsProps) {
+export function OAuthButtons({ github, sso = false, callbackUrl }: OAuthButtonsProps) {
   const [pending, setPending] = React.useState(false)
 
-  if (!github) return null
+  if (!github && !sso) return null
+
+  const start = (provider: string) => {
+    setPending(true)
+    void signIn(provider, { callbackUrl })
+  }
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full gap-2"
-        disabled={pending}
-        onClick={() => {
-          setPending(true)
-          void signIn('github', { callbackUrl })
-        }}
-      >
-        <Github className="size-4" />
-        Continue with GitHub
-      </Button>
+      <div className="space-y-2">
+        {sso && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full gap-2"
+            disabled={pending}
+            onClick={() => start('keycloak')}
+          >
+            <Building2 className="size-4" />
+            Continue with single sign-on
+          </Button>
+        )}
+        {github && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full gap-2"
+            disabled={pending}
+            onClick={() => start('github')}
+          >
+            <Github className="size-4" />
+            Continue with GitHub
+          </Button>
+        )}
+      </div>
 
       <div className="relative my-4">
         <div className="absolute inset-0 flex items-center" aria-hidden="true">

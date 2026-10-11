@@ -11,7 +11,20 @@ import { getEnv } from '@/lib/env'
 export const metadata: Metadata = { title: 'Sign in' }
 
 interface PageProps {
-  searchParams: Promise<{ callbackUrl?: string }>
+  searchParams: Promise<{ callbackUrl?: string; error?: string }>
+}
+
+/** What Auth.js's `?error=` codes mean to the person signing in. */
+const SIGN_IN_ERRORS: Record<string, string> = {
+  OAuthAccountNotLinked:
+    'That email already has an account here. Sign in with its password instead: accounts are not linked by email, so owning the same address elsewhere cannot take one over.',
+  AccessDenied: 'Access was denied.',
+  Configuration: 'Sign-in is misconfigured on this server. Ask your administrator to check its logs.',
+}
+
+function signInError(code: string | undefined): string | undefined {
+  if (!code || code === 'CredentialsSignin') return undefined
+  return SIGN_IN_ERRORS[code] ?? 'Sign-in did not complete. Try again.'
 }
 
 /**
@@ -24,9 +37,10 @@ function safeCallback(raw: string | undefined): string {
 }
 
 export default async function LoginPage({ searchParams }: PageProps) {
-  const { callbackUrl } = await searchParams
+  const { callbackUrl, error } = await searchParams
   const target = safeCallback(callbackUrl)
-  const { github } = oauthProvidersEnabled()
+  const { github, sso } = oauthProvidersEnabled()
+  const initialError = signInError(error)
   const allowRegistration = getEnv().ALLOW_REGISTRATION
 
   return (
@@ -49,8 +63,8 @@ export default async function LoginPage({ searchParams }: PageProps) {
         )
       }
     >
-      <OAuthButtons github={github} callbackUrl={target} />
-      <LoginForm callbackUrl={target} />
+      <OAuthButtons github={github} sso={sso} callbackUrl={target} />
+      <LoginForm callbackUrl={target} {...(initialError ? { initialError } : {})} />
     </AuthCard>
   )
 }

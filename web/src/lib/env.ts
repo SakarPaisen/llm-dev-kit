@@ -18,6 +18,18 @@ const serverSchema = z.object({
   AUTH_GITHUB_ID: z.string().optional(),
   AUTH_GITHUB_SECRET: z.string().optional(),
 
+  // Optional SSO through Keycloak (or any OIDC issuer at the same paths).
+  // Registered only when id, secret and issuer are all set.
+  AUTH_KEYCLOAK_ID: z.string().optional(),
+  AUTH_KEYCLOAK_SECRET: z.string().optional(),
+  /** The issuer as browsers and tokens name it, e.g. http://localhost:8080/sso/realms/llm-dev-kit. */
+  AUTH_KEYCLOAK_ISSUER: z.union([z.string().url(), z.literal('')]).optional(),
+  /**
+   * How this server reaches the same issuer when the public URL does not
+   * resolve here (inside Docker it points back at this container).
+   */
+  AUTH_KEYCLOAK_INTERNAL_ISSUER: z.union([z.string().url(), z.literal('')]).optional(),
+
   /**
    * OpenAI-compatible endpoint. Defaults to the llm-dev-kit rag-service, which
    * exposes /v1/chat/completions with retrieval-augmented answers.
