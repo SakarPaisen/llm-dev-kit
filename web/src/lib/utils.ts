@@ -5,9 +5,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-/** Derive a chat title from its first user message. */
+/**
+ * Derive a chat title from its first user message. Markdown syntax is dropped
+ * (code fences, backticks, heading, quote and list markers) so a pasted error
+ * or snippet does not title the chat with a row of backticks.
+ */
 export function deriveTitle(text: string, maxLength = 60): string {
-  const normalised = text.replace(/\s+/g, ' ').trim()
+  const normalised = text
+    .replace(/```[\w+-]*/g, ' ')
+    .replace(/`/g, '')
+    .replace(/^\s*(?:#{1,6}|>|[-*+]|\d+\.)\s+/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim()
   if (!normalised) return 'New chat'
   if (normalised.length <= maxLength) return normalised
 
