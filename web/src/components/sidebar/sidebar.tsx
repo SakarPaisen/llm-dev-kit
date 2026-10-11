@@ -50,9 +50,9 @@ export function Sidebar({ user, collapsed = false, onToggleCollapsed, onNavigate
   return (
     <div className="flex h-full flex-col text-sidebar-foreground">
       <div className="flex items-center gap-2.5 px-4 pb-2 pt-4">
-        <BrandMark size="sm" animated />
+        <BrandMark size="sm" />
         <span className="min-w-0 flex-1 truncate text-[0.9375rem] font-semibold tracking-tight">
-          LLM <span className="text-aurora">Dev Kit</span>
+          LLM Dev Kit
         </span>
         {onToggleCollapsed && (
           <IconTip label="Collapse sidebar" shortcut="⌘B">
@@ -77,25 +77,23 @@ export function Sidebar({ user, collapsed = false, onToggleCollapsed, onNavigate
           onClick={() => createChat.mutate({})}
           disabled={createChat.isPending}
           className={cn(
-            'group relative flex h-10 items-center gap-2 overflow-hidden rounded-xl bg-aurora px-3.5 text-sm font-medium text-white glow-aurora transition-transform',
-            'hover:-translate-y-px active:translate-y-0 disabled:opacity-60',
+            'flex h-9 items-center gap-2 rounded-lg bg-brand px-3 text-sm font-medium shadow-sm transition-colors',
+            'hover:bg-primary/90 disabled:opacity-60',
           )}
         >
-          {/* A light sweep across the button on hover. */}
-          <span className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-[300%]" />
           <PenSquare className="size-4" />
           New chat
           <span className="ml-auto flex gap-0.5 opacity-80 [@media(pointer:coarse)]:hidden">
-            <Kbd className="border-white/25 bg-white/10 text-white">⇧</Kbd>
-            <Kbd className="border-white/25 bg-white/10 text-white">⌘</Kbd>
-            <Kbd className="border-white/25 bg-white/10 text-white">O</Kbd>
+            <Kbd className="border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground">⇧</Kbd>
+            <Kbd className="border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground">⌘</Kbd>
+            <Kbd className="border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground">O</Kbd>
           </span>
         </button>
 
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}
-          className="flex h-9 items-center gap-2 rounded-xl border bg-foreground/[0.03] px-3 text-sm text-muted-foreground transition-colors glass-border hover:bg-foreground/[0.06] hover:text-foreground"
+          className="flex h-9 items-center gap-2 rounded-lg border bg-background px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           <Search className="size-3.5" />
           Search chats
@@ -269,7 +267,7 @@ function Rail({
 }) {
   return (
     <div className="flex h-full flex-col items-center gap-2 py-4">
-      <BrandMark size="md" animated className="mb-2" />
+      <BrandMark size="md" className="mb-2" />
 
       {onExpand && (
         <IconTip label="Expand sidebar" shortcut="⌘B" side="right">
@@ -292,7 +290,7 @@ function Rail({
           type="button"
           onClick={onNewChat}
           disabled={newChatPending}
-          className="flex size-10 items-center justify-center rounded-xl bg-aurora text-white glow-aurora transition-transform hover:-translate-y-px disabled:opacity-60"
+          className="flex size-9 items-center justify-center rounded-lg bg-brand shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-60"
         >
           <PenSquare className="size-4" />
           <span className="sr-only">New chat</span>

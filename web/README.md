@@ -45,11 +45,13 @@ Yesterday, Previous 7 / 30 days, Older) and collapses to an icon rail.
 message bodies, and runs actions: new chat, new folder, sidebar, theme. It is a
 combobox driven entirely from the keyboard. Shortcuts: ⇧⌘O new chat, ⌘B sidebar.
 
-**Aurora design** — dark-first (light and system themes one click away), glass
-surfaces over an animated aurora backdrop, entrance and streaming animations,
-and a theme switch revealed as a circle from the control you used (View
-Transitions API). All motion is CSS, adds no dependencies, and stops under
-`prefers-reduced-motion`.
+**Design** — a restrained, enterprise palette: neutral slate surfaces and a
+single blue accent, with light, dark and system themes (system by default). Both
+themes keep text and the accent at WCAG AA contrast. Motion is limited to short
+entrance transitions, the "Thinking" indicator and a theme switch revealed from
+the control you used (View Transitions API); all of it is CSS and stops under
+`prefers-reduced-motion`. Colours are tokens in `src/app/globals.css`; changing the
+brand colour means changing `--primary` and `--ring` in each theme.
 
 **Messages** — token-by-token streaming with a stop button; edit a message to
 rewind the conversation and regenerate from that point; regenerate an answer

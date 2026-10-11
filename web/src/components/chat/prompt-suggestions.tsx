@@ -39,17 +39,13 @@ interface PromptSuggestionsProps {
 export function PromptSuggestions({ onSelect, disabled }: PromptSuggestionsProps) {
   return (
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center px-6 py-12 text-center">
-      <div className="relative mb-6 animate-rise-in">
-        {/* A soft halo behind the mark. */}
-        <div aria-hidden="true" className="absolute inset-0 -z-10 scale-[2.2] rounded-full bg-aurora opacity-30 blur-2xl" />
-        <BrandMark size="lg" animated />
-      </div>
+      <BrandMark size="lg" className="mb-6 animate-rise-in" />
 
       <h2
-        className="animate-rise-in text-3xl font-semibold tracking-tight sm:text-4xl"
+        className="animate-rise-in text-2xl font-semibold tracking-tight sm:text-3xl"
         style={{ animationDelay: '60ms' }}
       >
-        How can I <span className="text-aurora">help you</span> today?
+        How can I help you today?
       </h2>
       <p
         className="mt-3 max-w-md animate-rise-in text-sm text-muted-foreground"
@@ -71,12 +67,12 @@ export function PromptSuggestions({ onSelect, disabled }: PromptSuggestionsProps
               disabled={disabled}
               onClick={() => onSelect(prompt)}
               className={cn(
-                'glass group relative flex h-full w-full items-start gap-3 overflow-hidden rounded-2xl border p-4 text-left transition-all duration-300',
-                'hover:-translate-y-1 hover:glow-aurora focus-visible:glow-aurora',
-                'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none',
+                'group flex h-full w-full items-start gap-3 rounded-xl border bg-card p-4 text-left shadow-sm transition-colors',
+                'hover:border-primary/40 hover:bg-accent/50',
+                'disabled:cursor-not-allowed disabled:opacity-50',
               )}
             >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-aurora text-white shadow-[0_8px_20px_-8px_hsl(var(--aurora-1)/0.8)] transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Icon className="size-4" />
               </span>
               <span className="min-w-0">

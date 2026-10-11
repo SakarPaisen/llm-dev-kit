@@ -146,7 +146,7 @@ The frontend is a **Next.js** application ([web/](web/)) running as its own cont
 - **Edit and regenerate** — editing a message rewinds the conversation to that turn and regenerates; replaced answers are archived and reachable through a `‹ 2/3 ›` control rather than lost.
 - **Markdown and syntax highlighting** — GitHub-flavoured Markdown, per-block code copy and soft-wrap toggle. The highlighter loads only when an answer contains code, and a code block is coloured once it closes.
 - **Sharing** — publish any conversation as a read-only link, revocable at any time.
-- **Aurora theme** — dark by default, with a matching light theme and a system option, remembered per browser. Glass surfaces over a slowly drifting aurora; every animation is CSS-only and stops when your system asks for reduced motion.
+- **Enterprise theme**: neutral surfaces and one blue accent, in light, dark and system modes (system by default, remembered per browser). Text and the accent meet WCAG AA contrast in both themes. Motion is minimal and CSS-only, and it stops when your system asks for reduced motion.
 
 Answers come from `rag-service`, grounded in your indexed PDFs — the retrieval pipeline is unchanged. The model picker is fed by `rag-service`'s `/v1/models`, which lists local Ollama models plus whichever cloud models are configured (see [Configuration & Cloud LLMs](#configuration--cloud-llms)).
 

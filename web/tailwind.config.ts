@@ -99,7 +99,6 @@ const config: Config = {
         'message-in': 'message-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both',
         'accent-in': 'accent-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both',
         'rise-in': 'rise-in 500ms cubic-bezier(0.2, 0.8, 0.2, 1) both',
-        'spin-slow': 'spin 6s linear infinite',
       },
     },
   },

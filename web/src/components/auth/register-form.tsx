@@ -146,7 +146,7 @@ export function RegisterForm({ callbackUrl }: RegisterFormProps) {
         </p>
       </div>
 
-      <Button type="submit" variant="gradient" className="h-10 w-full gap-2 rounded-xl" disabled={isPending}>
+      <Button type="submit" className="h-10 w-full gap-2" disabled={isPending}>
         {isPending && <Loader2 className="size-4 animate-spin" />}
         {isPending ? 'Creating account…' : 'Create account'}
       </Button>

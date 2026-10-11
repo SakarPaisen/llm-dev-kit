@@ -122,14 +122,14 @@ export function ChatListItem({
         className={cn(
           'relative flex items-center gap-2 rounded-lg py-[7px] pl-3 pr-2 text-[13px] transition-colors',
           isActive
-            ? 'bg-sidebar-accent font-medium text-foreground shadow-[inset_0_0_0_1px_hsl(var(--glass-border)/var(--glass-border-alpha))]'
+            ? 'bg-sidebar-accent font-medium text-foreground'
             : 'text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground',
         )}
       >
         {isActive && (
           <span
             aria-hidden="true"
-            className="absolute inset-y-1.5 left-0 w-[3px] animate-accent-in rounded-full bg-aurora shadow-[0_0_10px_hsl(var(--aurora-1)/0.9)]"
+            className="absolute inset-y-1.5 left-0 w-[3px] animate-accent-in rounded-full bg-primary"
           />
         )}
         {chat.pinned && <Pin className="size-3 shrink-0 fill-current text-primary" />}

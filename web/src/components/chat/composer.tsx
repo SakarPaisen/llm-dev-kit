@@ -75,8 +75,8 @@ export const Composer = React.memo(function Composer({
       >
         <div
           className={cn(
-            'glass flex items-end gap-2 rounded-2xl border p-2 shadow-[0_18px_50px_-24px_hsl(var(--aurora-1)/0.5)] transition-shadow duration-300',
-            'focus-within:glow-aurora',
+            'flex items-end gap-2 rounded-xl border bg-card p-2 shadow-sm transition-[border-color,box-shadow]',
+            'focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/15',
             disabled && 'opacity-60',
           )}
         >
@@ -103,7 +103,7 @@ export const Composer = React.memo(function Composer({
               size="icon"
               variant="secondary"
               onClick={onStop}
-              className="shrink-0 rounded-xl"
+              className="shrink-0 rounded-lg"
             >
               <Square className="fill-current" />
               <span className="sr-only">Stop generating</span>
@@ -113,7 +113,7 @@ export const Composer = React.memo(function Composer({
               type="submit"
               size="icon"
               disabled={!canSend}
-              className="shrink-0 rounded-xl bg-aurora text-white transition-transform hover:-translate-y-px hover:bg-aurora disabled:bg-none disabled:bg-muted disabled:text-muted-foreground"
+              className="shrink-0 rounded-lg disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
             >
               <ArrowUp />
               <span className="sr-only">Send message</span>

@@ -36,14 +36,12 @@ export function UserMenu({ user, compact = false }: UserMenuProps) {
   React.useEffect(() => setMounted(true), [])
 
   const avatar = (
-    <span className="rounded-full bg-aurora p-[1.5px]">
-      <Avatar className="size-7 border-2 border-background">
-        {user.image && <AvatarImage src={user.image} alt="" />}
-        <AvatarFallback className="text-[10px] font-semibold">
-          {initialsOf(user.name ?? user.email)}
-        </AvatarFallback>
-      </Avatar>
-    </span>
+    <Avatar className="size-7 border">
+      {user.image && <AvatarImage src={user.image} alt="" />}
+      <AvatarFallback className="text-[10px] font-semibold">
+        {initialsOf(user.name ?? user.email)}
+      </AvatarFallback>
+    </Avatar>
   )
 
   return (
@@ -53,7 +51,7 @@ export function UserMenu({ user, compact = false }: UserMenuProps) {
           ref={triggerRef}
           type="button"
           className={cn(
-            'flex items-center gap-2.5 rounded-xl text-left transition-colors hover:bg-foreground/[0.05]',
+            'flex items-center gap-2.5 rounded-lg text-left transition-colors hover:bg-sidebar-accent',
             compact ? 'p-1' : 'w-full border bg-foreground/[0.02] px-2.5 py-2 glass-border',
           )}
         >

@@ -164,7 +164,7 @@ export const MessageItem = React.memo(function MessageItem({
         aria-label="Your message"
       >
         <div className="flex min-w-0 max-w-[85%] flex-col items-end sm:max-w-[70%]">
-          <div className="rounded-2xl rounded-br-md bg-aurora px-4 py-2.5 text-[0.9375rem] leading-7 text-white shadow-[0_10px_30px_-14px_hsl(var(--aurora-1)/0.8)]">
+          <div className="rounded-2xl rounded-br-md bg-secondary px-4 py-2.5 text-[0.9375rem] leading-7 text-secondary-foreground">
             <div className="whitespace-pre-wrap break-words">{displayed}</div>
           </div>
 
@@ -190,14 +190,14 @@ export const MessageItem = React.memo(function MessageItem({
       className="group flex w-full animate-message-in gap-3 px-4 py-5 sm:px-6"
       aria-label="Assistant response"
     >
-      <BrandMark size="sm" animated={isStreaming} className="mt-0.5" />
+      <BrandMark size="sm" className="mt-0.5" />
 
       <div className="min-w-0 flex-1">
         <header className="mb-1 flex items-center gap-2">
           <h3 className="text-sm font-semibold">Assistant</h3>
 
           {message.model && (
-            <span className="truncate rounded-full border bg-foreground/[0.03] px-2 py-0.5 font-mono text-[10px] text-muted-foreground glass-border">
+            <span className="truncate rounded-md border bg-muted/50 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
               {message.model}
             </span>
           )}
@@ -299,7 +299,7 @@ function ThinkingIndicator() {
         {[0, 160, 320].map((delay) => (
           <span
             key={delay}
-            className="size-1 animate-bounce rounded-full bg-aurora"
+            className="size-1 animate-bounce rounded-full bg-muted-foreground"
             style={{ animationDelay: `${delay}ms` }}
           />
         ))}

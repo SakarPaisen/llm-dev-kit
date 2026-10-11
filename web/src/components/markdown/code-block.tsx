@@ -19,8 +19,8 @@ export function CodeBlock({ language, code, children }: CodeBlockProps) {
   const [wrap, setWrap] = React.useState(false)
 
   return (
-    <figure className="group relative my-4 overflow-hidden rounded-xl border bg-foreground/[0.03] glass-border dark:bg-black/30">
-      <figcaption className="flex items-center justify-between gap-2 border-b bg-foreground/[0.03] px-3 py-1.5 glass-border">
+    <figure className="group relative my-4 overflow-hidden rounded-lg border bg-muted/40 dark:bg-black/30">
+      <figcaption className="flex items-center justify-between gap-2 border-b bg-muted/60 px-3 py-1.5">
         <span className="font-mono text-xs text-muted-foreground">
           {language ?? 'text'}
         </span>

@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-import { AuroraBackdrop } from '@/components/brand/aurora-backdrop'
+import { PageBackdrop } from '@/components/brand/page-backdrop'
 import { BrandMark } from '@/components/brand/brand-mark'
 import { MessageItem } from '@/components/chat/message-item'
 import { Button } from '@/components/ui/button'
@@ -37,8 +37,8 @@ export default async function SharedChatPage({ params }: PageProps) {
 
   return (
     <div className="relative isolate flex min-h-dvh flex-col bg-background">
-      <AuroraBackdrop />
-      <header className="sticky top-0 z-20 border-b bg-background/40 backdrop-blur-xl glass-border">
+      <PageBackdrop />
+      <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-4 py-3 sm:px-6">
           <BrandMark size="md" />
 

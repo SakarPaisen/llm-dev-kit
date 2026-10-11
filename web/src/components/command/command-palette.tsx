@@ -86,7 +86,7 @@ export function CommandPalette() {
         <DialogPrimitive.Content
           aria-describedby={undefined}
           className={cn(
-            'glass fixed left-1/2 top-[14vh] z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-2xl border shadow-2xl',
+            'fixed left-1/2 top-[14vh] z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-xl border bg-popover shadow-xl',
             'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-top-2',
           )}
         >
@@ -272,12 +272,12 @@ function PaletteBody({ close }: { close: () => void }) {
                     onMouseMove={() => setActive(items.indexOf(item))}
                     onClick={() => runItem(item)}
                     className={cn(
-                      'relative flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors',
-                      isActive ? 'bg-primary/10 text-foreground' : 'text-muted-foreground',
+                      'relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
+                      isActive ? 'bg-accent text-foreground' : 'text-muted-foreground',
                     )}
                   >
                     {isActive && (
-                      <span className="absolute inset-y-2 left-0 w-[3px] animate-accent-in rounded-full bg-aurora" />
+                      <span className="absolute inset-y-2 left-0 w-[3px] animate-accent-in rounded-full bg-primary" />
                     )}
                     <Icon className={cn('size-4 shrink-0', isActive && 'text-primary')} />
                     <span className="min-w-0 flex-1 truncate">{item.label}</span>
