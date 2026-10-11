@@ -12,9 +12,9 @@ OpenAI-compatible API and MCP.
 [![License: MIT](https://img.shields.io/badge/License-MIT-2563eb.svg)](LICENSE)
 ![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![Next.js 15](https://img.shields.io/badge/Next.js-15-black?logo=next.js&logoColor=white)
-![Ollama](https://img.shields.io/badge/Ollama-local_models-000000?logo=ollama&logoColor=white)
+![Ollama](https://img.shields.io/badge/Ollama-local%20models-000000?logo=ollama&logoColor=white)
 ![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-![OpenAI compatible](https://img.shields.io/badge/API-OpenAI_compatible-412991)
+![OpenAI compatible](https://img.shields.io/badge/API-OpenAI%20compatible-412991)
 
 [Quick start](#quick-start) · [Tour](#a-quick-tour) · [Features](#features) · [Use it from code](#use-it-from-code) · [Architecture](#how-it-works) · [Docs](#documentation)
 
