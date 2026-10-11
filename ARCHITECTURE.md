@@ -1,8 +1,8 @@
 # Architecture
 
 The LLM Dev Kit is a set of small, independently built and deployed services
-behind an Nginx gateway. The only published application port is the gateway
-(`:8080`). Every service has its own Docker image stage, its own dependency
+behind an Nginx gateway. The only published port is the gateway (`:8080`),
+bound to `127.0.0.1` unless `GATEWAY_BIND` opts into wider access. Every service has its own Docker image stage, its own dependency
 set, and communicates over HTTP — no shared in-process imports across
 service boundaries (only the thin `devkit_common` library is shared at build
 time).
@@ -176,8 +176,9 @@ base:
   repeating it per stage;
 - containers run as a non-root `appuser`;
 - healthchecks use the Python stdlib (no curl in the images);
-- in dev, `docker-compose.yml` bind-mounts the service source and runs
-  uvicorn `--reload` for hot reload;
+- `docker-compose.yml` runs the code baked into each image; the opt-in
+  `compose.dev.yml` overlay bind-mounts the service source and runs uvicorn
+  `--reload` for hot reload;
 - `deploy.replicas: 2` on rag-service demonstrates horizontal scaling behind
   the load balancer (`docker compose up -d --scale rag-service=N`);
 - every service in `docker-compose.yml` carries `deploy.resources`

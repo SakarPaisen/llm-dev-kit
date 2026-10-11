@@ -3,6 +3,7 @@ name = "ldk-plugin-loader-pdf"
 version = "0.1.0"
 description = "llm-dev-kit plugin: PDF document loader (pypdf), page by page."
 requires-python = ">=3.12"
+license = "MIT"
 dependencies = [
     "ldk-core",
     "pypdf>=4",
@@ -18,5 +19,5 @@ where = ["src"]
 ldk_plugin_loader_pdf = ["py.typed", "manifests/*.json"]
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"

@@ -3,6 +3,7 @@ name = "ldk-plugin-chunker-fixed"
 version = "0.1.0"
 description = "llm-dev-kit plugin: Fixed-size character windows with overlap."
 requires-python = ">=3.12"
+license = "MIT"
 dependencies = [
     "ldk-core",
 ]
@@ -17,5 +18,5 @@ where = ["src"]
 ldk_plugin_chunker_fixed = ["py.typed", "manifests/*.json"]
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"

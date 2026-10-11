@@ -3,6 +3,7 @@ name = "ldk-plugin-litellm"
 version = "0.1.0"
 description = "llm-dev-kit plugin: OpenAI, Gemini and Anthropic chat models through LiteLLM."
 requires-python = ">=3.12"
+license = "MIT"
 dependencies = [
     "ldk-core",
     "litellm",
@@ -20,5 +21,5 @@ where = ["src"]
 ldk_plugin_litellm = ["py.typed", "manifests/*.json"]
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
