@@ -29,8 +29,11 @@ embeddings always run locally.
 cp .env.example .env
 ```
 
-Everything works fully offline with the defaults. The sections in `.env` map
-to:
+The sections in `.env` map to the table below. One thing to change for the
+Docker stack: `.env.example` sets `OLLAMA_HOST=http://localhost:11434`, which
+suits services run directly on your machine; inside Docker, `localhost` is the
+container itself. With Ollama on the host, remove that line so Compose uses its
+default, `http://host.docker.internal:11434`.
 
 | Section | Purpose |
 | --- | --- |
@@ -52,6 +55,16 @@ Or detached:
 docker compose up -d --build
 ```
 
+This runs the services from the code baked into their images. For hot reload
+while working on the Python services, add the dev overlay, which bind-mounts
+their source and runs uvicorn with `--reload`:
+
+```bash
+docker compose -f docker-compose.yml -f compose.dev.yml up --build
+```
+
+The overlay is opt-in on purpose: a plain `docker compose up` never picks it up.
+
 Verify everything is healthy:
 
 ```bash
@@ -60,7 +73,11 @@ curl http://localhost:8080/api/rag/health
 curl http://localhost:8080/api/llm/health
 ```
 
-`nginx` is the **only** published port. If `docker compose ps` shows services
+`nginx` is the **only** published port, and it listens on `127.0.0.1` by default.
+To reach the stack from other machines on your network, set `GATEWAY_BIND=0.0.0.0`
+in `.env` — but read the warning next to it in `.env.example` first: until
+Phase 4 adds authentication, that exposes the APIs and account registration to
+everyone on the network. If `docker compose ps` shows services
 as `Exited`, nothing is listening on `:8080` and the whole UI — not just
 RAG — will be unreachable; see [Troubleshooting](#troubleshooting).
 
@@ -112,6 +129,26 @@ Cloud calls are routed through LiteLLM. Set `OPENAI_API_KEY`,
 chat UI and paste your key there. See the README's
 [Cloud LLMs section](../README.md#cloud-llms--bring-your-own-api-key) for
 details.
+
+## Reaching Redis or Chroma from the host
+
+Redis and Chroma are deliberately not published: the services reach them over
+the Compose network, and neither has authentication. To inspect them from your
+machine while debugging, create a local override file (not committed), bound
+to localhost only:
+
+```yaml
+# compose.debug-ports.yml
+services:
+  redis:
+    ports: ["127.0.0.1:6379:6379"]
+  chroma:
+    ports: ["127.0.0.1:8000:8000"]
+```
+
+```bash
+docker compose -f docker-compose.yml -f compose.debug-ports.yml up -d redis chroma
+```
 
 ## Stopping and restarting
 
@@ -170,8 +207,13 @@ docker compose restart nginx   # re-resolve upstream IPs
   the usual causes) — bring it back with `docker compose up -d` and re-check
   `docker compose ps` for `healthy` status.
 - **"no local models found" in the model picker** — check Ollama is running
-  (`ollama list`) and reachable from Docker; the connection URL is
-  `http://host.docker.internal:11434` by default.
+  (`ollama list`) and reachable from Docker. Compose defaults to
+  `http://host.docker.internal:11434`, but an `OLLAMA_HOST=http://localhost:11434`
+  line copied from `.env.example` overrides that and points the container at
+  itself: remove it.
+- **The app can't be reached from another machine** — expected: the gateway
+  binds to `127.0.0.1`. Set `GATEWAY_BIND=0.0.0.0` in `.env` (with
+  `ALLOW_REGISTRATION=false`) and run `docker compose up -d`.
 - **Cloud model errors** — `401` means no/invalid API key: set it in `.env`
   or pass `api_key` per request.
 - **PDF retrieval returns nothing** — the PDF must contain selectable text,

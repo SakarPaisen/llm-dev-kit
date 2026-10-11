@@ -3,6 +3,7 @@ name = "rag-service"
 version = "0.1.0"
 description = "RAG chat orchestration: retrieval over ChromaDB, streaming chat, PDF ingest, Redis cache."
 requires-python = ">=3.12"
+license = "MIT"
 dynamic = ["dependencies"]
 
 [tool.setuptools.dynamic]
@@ -12,5 +13,5 @@ dependencies = { file = ["requirements.txt"] }
 where = ["src"]
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"

@@ -1,0 +1,26 @@
+# Development overlay: hot reload for the Python services.
+#
+#   docker compose -f docker-compose.yml -f compose.dev.yml up --build
+#
+# Bind-mounts each service's source over the copy baked into its image and runs
+# uvicorn with --reload. Deliberately not named docker-compose.override.yml:
+# Compose applies that file automatically, which would turn every plain
+# `docker compose up` back into a dev stack. Publishes no ports of its own;
+# tests/test_compose.py checks that.
+services:
+  llm-service:
+    command: uvicorn llm_service.main:app --host 0.0.0.0 --port 8010 --reload
+    volumes:
+      - ./services/devkit_common/src/devkit_common:/app/devkit_common
+      - ./services/llm_service/src/llm_service:/app/llm_service
+
+  rag-service:
+    command: uvicorn rag_service.main:app --host 0.0.0.0 --port 8020 --reload
+    volumes:
+      - ./services/devkit_common/src/devkit_common:/app/devkit_common
+      - ./services/rag_service/src/rag_service:/app/rag_service
+
+  mcp:
+    volumes:
+      - ./services/devkit_common/src/devkit_common:/app/devkit_common
+      - ./services/mcp_service/src/mcp_service:/app/mcp_service
