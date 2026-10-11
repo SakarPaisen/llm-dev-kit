@@ -83,25 +83,23 @@ RAG — will be unreachable; see [Troubleshooting](#troubleshooting).
 
 ## 4. Open the chat UI
 
-Go to **http://localhost:8080** — the built-in chat UI loads instantly (a
-React + Vite app compiled to static files inside the nginx image; no
-account, no frontend container). In the toolbar:
+Go to **http://localhost:8080** and create an account. The chat app is the
+`web` container (Next.js), served through the nginx gateway.
 
-- **Provider** — Local (Ollama) by default; switch to OpenAI, Gemini or
-  Anthropic and paste an API key (kept in your browser's localStorage, sent
-  per-request, never stored server-side).
-- **Model** — populated from `/api/llm/models` (live Ollama models plus
-  curated cloud models).
-- Every answer is RAG-augmented over whatever you've indexed; responses
-  stream token-by-token, cached answers return instantly with a ⚡ badge, and
-  retrieved source snippets are shown under each reply.
+- **Model:** pick one at the top right. The list comes from rag-service's
+  `/v1/models`: your local Ollama models, plus any cloud models whose keys are
+  set in `.env`.
+- Every answer is grounded in whatever you have indexed (step 5), and streams
+  as it is written.
+
+[usage.md](usage.md) covers day-to-day use: adding documents, what to expect
+from answers, and letting other people on your network sign in.
 
 ## 5. Index a PDF
 
-Click the **📎 paperclip** in the message bar (or drag a PDF anywhere onto
-the page) — the file is chunked, embedded locally, and indexed into
-ChromaDB, with a confirmation note in the chat thread. Or upload via the
-API:
+Upload through the API; the chat app has no upload button yet
+([#15](https://github.com/sameeralam3127/llm-dev-kit/issues/15)). The file is
+chunked, embedded locally, and indexed into ChromaDB:
 
 ```bash
 curl -X POST http://localhost:8080/api/rag/ingest/pdf -F "file=@mydoc.pdf"

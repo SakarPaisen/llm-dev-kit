@@ -150,7 +150,7 @@ The frontend is a **Next.js** application ([web/](web/)) running as its own cont
 
 Answers come from `rag-service`, grounded in your indexed PDFs — the retrieval pipeline is unchanged. The model picker is fed by `rag-service`'s `/v1/models`, which lists local Ollama models plus whichever cloud models are configured (see [Configuration & Cloud LLMs](#configuration--cloud-llms)).
 
-> **Note:** three things from the project's earlier static UI didn't carry over as-is: in-chat PDF upload (ingestion still works via `POST /api/rag/ingest/pdf`), the cache badge and one-click cache clear, and pasting a cloud API key from the browser — that's now a server-side setting instead. Upload in the UI returns with per-user ingestion ([#15](https://github.com/sameeralam3127/llm-dev-kit/issues/15)).
+> **Note:** three things from the project's earlier static UI didn't carry over as-is: in-chat PDF upload (ingestion still works via `POST /api/rag/ingest/pdf`), the cache badge and one-click cache clear, and pasting a cloud API key from the browser — that's now a server-side setting instead. Upload in the UI returns with per-user ingestion ([#15](https://github.com/sameeralam3127/llm-dev-kit/issues/15)). [docs/usage.md](docs/usage.md) walks through adding documents and chatting today.
 
 For frontend development with hot reload:
 
@@ -360,6 +360,7 @@ Full walkthrough and more failure modes: [docs/setup.md](docs/setup.md).
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System diagrams, request flows, and the Docker build strategy |
 | [docs/v2/PLAN.md](docs/v2/PLAN.md) | The v2 plan: target architecture, interfaces, migration and phases |
 | [docs/setup.md](docs/setup.md) | Step-by-step setup, PDF ingestion, and troubleshooting |
+| [docs/usage.md](docs/usage.md) | Adding documents, chatting, and letting other people in |
 | [web/README.md](web/README.md) | Frontend architecture, environment variables, and feature detail |
 
 ## License
