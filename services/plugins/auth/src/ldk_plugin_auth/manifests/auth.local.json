@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "name": "local",
+  "version": "0.1.0",
+  "kind": "auth",
+  "description": "Verifies the web app's signed access tokens against its published keys, and exchanges personal sk-ldk- API keys for one.",
+  "permissions": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "jwks_url": {"type": "string", "minLength": 1},
+      "token_url": {"type": "string", "minLength": 1},
+      "issuer": {"type": "string", "minLength": 1},
+      "audience": {"type": "string", "minLength": 1},
+      "timeout": {"type": "number", "exclusiveMinimum": 0, "default": 5}
+    },
+    "required": ["jwks_url", "token_url", "issuer", "audience"],
+    "additionalProperties": false
+  }
+}

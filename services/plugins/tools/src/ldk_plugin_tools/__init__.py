@@ -14,6 +14,7 @@ from typing import Any
 
 import httpx
 
+from ldk_core.auth import auth_headers
 from ldk_core.errors import ErrorCode, ServiceError, code_for_status
 from ldk_core.observability import outgoing_headers
 from ldk_core.plugins import Plugin, load_manifest
@@ -39,8 +40,9 @@ class _HttpTool:
             base_url=self.base_url,
             timeout=self._timeout,
             transport=self._transport,
-            # The services log under this id too, so a tool call is traceable.
-            headers=outgoing_headers(),
+            # The services log under this id too, so a tool call is traceable,
+            # and verify the caller's own credential.
+            headers={**outgoing_headers(), **auth_headers()},
         ) as client:
             try:
                 res = await client.request(method, path, **kwargs)

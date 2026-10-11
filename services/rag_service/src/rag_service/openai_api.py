@@ -1,23 +1,29 @@
 """OpenAI-compatible endpoints so any OpenAI client (SDKs, LangChain, curl)
 can use the RAG pipeline as a model backend.
 
-Every model exposed here answers with retrieval-augmented context. A real cloud
-API key supplied as the Bearer token is forwarded to the llm-service for cloud
-models; placeholder keys (sk-local*) are ignored, keeping the default fully
-offline.
+Every model exposed here answers with retrieval-augmented context. The Bearer
+token says who is calling: a personal API key (``sk-ldk-...``) or an access
+token from the web app. Calls without one get 401.
+
+Under ``ALLOW_LEGACY_ANONYMOUS`` the pre-v2 meaning survives for one release:
+a Bearer that is not an identity is a cloud provider key, forwarded to
+llm-service for cloud models, and placeholder keys (``sk-local*``) are ignored.
 """
 
 import json
 import time
 from uuid import uuid4
 
-from fastapi import APIRouter, Header, Request
+from fastapi import APIRouter, Depends, Header, Request
 from fastapi.responses import StreamingResponse
 
+from devkit_common.auth import require
+from ldk_core.auth import CHAT
 from ldk_core.errors import ServiceError, bad_request
+from ldk_core.ports import Principal
 from rag_service.prompts import build_prompt
 
-router = APIRouter(prefix="/v1", tags=["openai-compat"])
+router = APIRouter(prefix="/v1", tags=["openai-compat"], dependencies=[Depends(require(CHAT))])
 
 PLACEHOLDER_KEY_PREFIX = "sk-local"
 
@@ -98,7 +104,10 @@ async def chat_completions(
     model = body.get("model") or settings.default_chat_model
     messages = body.get("messages") or []
     stream = bool(body.get("stream"))
-    api_key = _bearer_api_key(authorization)
+    principal: Principal = request.state.principal
+    # Only an anonymous legacy caller's Bearer can be a provider key; anyone
+    # else's Bearer is their identity.
+    api_key = _bearer_api_key(authorization) if principal.kind == "anonymous" else None
 
     query, history = _extract_query(messages)
     if not query.strip():

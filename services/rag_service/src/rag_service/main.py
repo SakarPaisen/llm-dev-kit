@@ -4,12 +4,14 @@ from contextlib import asynccontextmanager
 from typing import Any
 from uuid import uuid4
 
-from fastapi import FastAPI, File, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Request, UploadFile
 from fastapi.responses import StreamingResponse
 
+from devkit_common.auth import build_authenticator, require
 from devkit_common.config import Settings, get_settings
 from devkit_common.http import install_service
 from devkit_common.models import ChatRequest, ChatResponse, IngestResponse
+from ldk_core.auth import ADMIN, CHAT, INGEST
 from ldk_core.errors import ServiceError, bad_request
 from ldk_core.plugins import CHUNKER, LOADER, VECTOR_STORE, PluginKind, PluginRegistry
 from ldk_core.ports import ChunkRecord, VectorStore
@@ -46,6 +48,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     registry = build_registry(settings)
     app.state.settings = settings
     app.state.registry = registry
+    app.state.authenticator = build_authenticator(registry, settings)
     app.state.llm = LLMServiceClient(settings.llm_service_url, settings.request_timeout_seconds)
     app.state.cache = ChatCache(settings.redis_url, settings.cache_ttl)
     app.state.retriever = Retriever(store=registry.get(VECTOR_STORE, VECTOR_STORE_PLUGIN))
@@ -70,13 +73,13 @@ async def health() -> dict[str, str]:
     return {"status": "ok", "service": "rag-service"}
 
 
-@app.get("/models")
+@app.get("/models", dependencies=[Depends(require(CHAT))])
 async def models(request: Request) -> list[str]:
     result: list[str] = await request.app.state.llm.models()
     return result
 
 
-@app.post("/chat", response_model=ChatResponse)
+@app.post("/chat", response_model=ChatResponse, dependencies=[Depends(require(CHAT))])
 async def chat(body: ChatRequest, request: Request) -> ChatResponse:
     return await answer_query(
         body.message,
@@ -88,7 +91,7 @@ async def chat(body: ChatRequest, request: Request) -> ChatResponse:
     )
 
 
-@app.post("/chat/stream")
+@app.post("/chat/stream", dependencies=[Depends(require(CHAT))])
 async def chat_stream(body: ChatRequest, request: Request) -> StreamingResponse:
     return StreamingResponse(
         stream_answer(
@@ -103,7 +106,7 @@ async def chat_stream(body: ChatRequest, request: Request) -> StreamingResponse:
     )
 
 
-@app.post("/ingest/pdf", response_model=IngestResponse)
+@app.post("/ingest/pdf", response_model=IngestResponse, dependencies=[Depends(require(INGEST))])
 async def ingest_pdf(request: Request, file: UploadFile = File(...)) -> IngestResponse:
     if file.content_type not in {"application/pdf", "application/octet-stream"}:
         raise bad_request("Only PDF uploads are supported")
@@ -134,18 +137,18 @@ async def ingest_pdf(request: Request, file: UploadFile = File(...)) -> IngestRe
     return IngestResponse(chunks=len(chunks))
 
 
-@app.get("/cache/stats")
+@app.get("/cache/stats", dependencies=[Depends(require(ADMIN))])
 async def cache_stats(request: Request) -> dict[str, Any]:
     stats: dict[str, Any] = await request.app.state.cache.stats()
     return stats
 
 
-@app.post("/cache/clear")
+@app.post("/cache/clear", dependencies=[Depends(require(ADMIN))])
 async def cache_clear(request: Request) -> dict[str, int]:
     return {"cleared": await request.app.state.cache.clear()}
 
 
-@app.get("/documents/stats")
+@app.get("/documents/stats", dependencies=[Depends(require(ADMIN))])
 async def document_stats(request: Request) -> dict[str, Any]:
     try:
         count = await _store(request).count(LEGACY_COLLECTION)
@@ -154,7 +157,7 @@ async def document_stats(request: Request) -> dict[str, Any]:
     return {"status": "connected", "document_count": count}
 
 
-@app.post("/documents/clear")
+@app.post("/documents/clear", dependencies=[Depends(require(ADMIN))])
 async def documents_clear(request: Request) -> dict[str, bool]:
     try:
         await _store(request).clear(LEGACY_COLLECTION)

@@ -37,8 +37,10 @@ COPY services/llm_service/requirements.txt /tmp/requirements.txt
 COPY services/core /src/core
 COPY services/plugins/ollama /src/plugins/ollama
 COPY services/plugins/litellm /src/plugins/litellm
+COPY services/plugins/auth /src/plugins/auth
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r /tmp/requirements.txt /src/core /src/plugins/ollama /src/plugins/litellm
+    pip install -r /tmp/requirements.txt /src/core /src/plugins/ollama /src/plugins/litellm \
+        /src/plugins/auth
 COPY services/devkit_common/src/devkit_common ./devkit_common
 COPY services/llm_service/src/llm_service ./llm_service
 USER appuser
@@ -52,9 +54,10 @@ COPY services/core /src/core
 COPY services/plugins/chroma /src/plugins/chroma
 COPY services/plugins/loader_pdf /src/plugins/loader_pdf
 COPY services/plugins/chunker_fixed /src/plugins/chunker_fixed
+COPY services/plugins/auth /src/plugins/auth
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r /tmp/requirements.txt /src/core \
-        /src/plugins/chroma /src/plugins/loader_pdf /src/plugins/chunker_fixed
+        /src/plugins/chroma /src/plugins/loader_pdf /src/plugins/chunker_fixed /src/plugins/auth
 COPY services/devkit_common/src/devkit_common ./devkit_common
 COPY services/rag_service/src/rag_service ./rag_service
 USER appuser
