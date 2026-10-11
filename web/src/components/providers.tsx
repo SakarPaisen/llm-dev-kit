@@ -35,7 +35,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          // Aurora is designed dark-first; light and system remain one click away.
+          defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >

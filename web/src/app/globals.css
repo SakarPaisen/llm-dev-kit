@@ -12,75 +12,98 @@
     --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
-    --background: 0 0% 100%;
-    --foreground: 224 12% 12%;
+    /* Aurora, light. Colours are HSL triplets so Tailwind can add alpha. */
+    --background: 240 33% 98.5%;
+    --foreground: 240 28% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 12% 12%;
+    --card-foreground: 240 28% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 12% 12%;
+    --popover-foreground: 240 28% 10%;
 
-    --primary: 231 84% 56%;
+    --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 224 12% 20%;
+    --secondary: 240 25% 95%;
+    --secondary-foreground: 240 28% 18%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 240 25% 95%;
+    --muted-foreground: 240 10% 42%;
 
-    --accent: 220 14% 94%;
-    --accent-foreground: 224 12% 16%;
+    --accent: 250 60% 95%;
+    --accent-foreground: 248 40% 22%;
 
     --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 89%;
-    --input: 220 13% 87%;
-    --ring: 231 84% 56%;
+    --border: 240 22% 90%;
+    --input: 240 20% 87%;
+    --ring: 262 83% 58%;
 
-    --sidebar: 222 26% 96%;
-    --sidebar-foreground: 224 12% 20%;
-    --sidebar-accent: 220 14% 92%;
-    --sidebar-border: 220 13% 90%;
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 240 25% 16%;
+    --sidebar-accent: 252 70% 96%;
+    --sidebar-border: 240 25% 90%;
 
-    --radius: 0.85rem;
+    /* The three aurora hues: violet, cyan, magenta. */
+    --aurora-1: 262 83% 62%;
+    --aurora-2: 190 90% 46%;
+    --aurora-3: 322 85% 58%;
+    --aurora-opacity: 0.28;
+
+    /* Glass surfaces: a tinted, blurred panel with a hairline border. */
+    --glass: 0 0% 100%;
+    --glass-alpha: 0.66;
+    --glass-border: 240 30% 82%;
+    --glass-border-alpha: 0.7;
+
+    --radius: 0.9rem;
   }
 
   .dark {
-    --background: 224 14% 9%;
-    --foreground: 220 14% 92%;
+    --background: 240 38% 4.5%;
+    --foreground: 240 30% 95%;
 
-    --card: 224 14% 11%;
-    --card-foreground: 220 14% 92%;
+    --card: 240 30% 8%;
+    --card-foreground: 240 30% 95%;
 
-    --popover: 224 14% 12%;
-    --popover-foreground: 220 14% 92%;
+    --popover: 240 30% 9%;
+    --popover-foreground: 240 30% 95%;
 
-    --primary: 231 91% 68%;
-    --primary-foreground: 224 20% 8%;
+    --primary: 262 90% 72%;
+    --primary-foreground: 240 40% 6%;
 
-    --secondary: 223 12% 18%;
-    --secondary-foreground: 220 14% 90%;
+    --secondary: 240 22% 13%;
+    --secondary-foreground: 240 25% 92%;
 
-    --muted: 223 12% 17%;
-    --muted-foreground: 220 9% 62%;
+    --muted: 240 22% 12%;
+    --muted-foreground: 240 12% 66%;
 
-    --accent: 223 12% 20%;
-    --accent-foreground: 220 14% 94%;
+    --accent: 255 30% 16%;
+    --accent-foreground: 240 30% 96%;
 
-    --destructive: 0 72% 58%;
+    --destructive: 0 72% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 223 12% 20%;
-    --input: 223 12% 24%;
-    --ring: 231 91% 68%;
+    --border: 240 22% 15%;
+    --input: 240 20% 20%;
+    --ring: 262 90% 72%;
 
-    --sidebar: 224 14% 11%;
-    --sidebar-foreground: 220 14% 88%;
-    --sidebar-accent: 223 12% 18%;
-    --sidebar-border: 223 12% 18%;
+    --sidebar: 240 35% 7%;
+    --sidebar-foreground: 240 25% 90%;
+    --sidebar-accent: 252 35% 15%;
+    --sidebar-border: 240 25% 14%;
+
+    --aurora-1: 262 90% 66%;
+    --aurora-2: 188 95% 50%;
+    --aurora-3: 322 90% 62%;
+    --aurora-opacity: 0.5;
+
+    --glass: 240 35% 9%;
+    --glass-alpha: 0.55;
+    --glass-border: 240 60% 80%;
+    --glass-border-alpha: 0.09;
   }
 
   * {
@@ -226,10 +249,15 @@
   @apply max-w-full rounded-md border border-border;
 }
 
-/* The caret that trails a streaming answer. */
-.streaming-caret::after {
+/* The caret that trails a streaming answer: at the end of the last paragraph,
+   heading or list item when there is one, otherwise after the whole answer. */
+.streaming-caret > :is(p, h1, h2, h3, h4, h5, h6, blockquote):last-child::after,
+.streaming-caret > :is(ul, ol):last-child > li:last-child::after,
+.streaming-caret:not(:has(> :is(p, h1, h2, h3, h4, h5, h6, blockquote, ul, ol):last-child))::after {
   content: '';
-  @apply ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 animate-caret-blink bg-foreground align-baseline;
+  @apply ml-0.5 inline-block h-4 w-[3px] translate-y-0.5 animate-caret-blink rounded-full align-baseline;
+  background-image: linear-gradient(180deg, hsl(var(--aurora-2)), hsl(var(--aurora-1)));
+  box-shadow: 0 0 8px hsl(var(--aurora-1) / 0.7);
 }
 
 /* ---------------------------------------------------------------------------
@@ -342,6 +370,162 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Aurora: glass surfaces, gradient accents and the animated backdrop.
+   Everything here is CSS-only and animates transform/opacity, so it stays on
+   the compositor; all of it stops under prefers-reduced-motion (below).
+--------------------------------------------------------------------------- */
+
+@layer components {
+  .glass {
+    background-color: hsl(var(--glass) / var(--glass-alpha));
+    border-color: hsl(var(--glass-border) / var(--glass-border-alpha));
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    backdrop-filter: blur(20px) saturate(150%);
+  }
+
+  .glass-border {
+    border-color: hsl(var(--glass-border) / var(--glass-border-alpha));
+  }
+
+  .bg-aurora {
+    background-image: linear-gradient(
+      135deg,
+      hsl(var(--aurora-1)) 0%,
+      hsl(var(--aurora-3)) 100%
+    );
+  }
+
+  .text-aurora {
+    background-image: linear-gradient(
+      100deg,
+      hsl(var(--aurora-1)),
+      hsl(var(--aurora-2)) 50%,
+      hsl(var(--aurora-3))
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* A soft violet glow for primary actions and the focused composer. */
+  .glow-aurora {
+    box-shadow:
+      0 0 0 1px hsl(var(--aurora-1) / 0.35),
+      0 10px 30px -10px hsl(var(--aurora-1) / 0.65);
+  }
+
+  /* "Thinking…": a light sweep across gradient text. */
+  .text-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      hsl(var(--muted-foreground)) 0%,
+      hsl(var(--muted-foreground)) 35%,
+      hsl(var(--aurora-2)) 50%,
+      hsl(var(--muted-foreground)) 65%,
+      hsl(var(--muted-foreground)) 100%
+    );
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: text-shimmer 2.2s linear infinite;
+  }
+}
+
+@keyframes text-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -150% 0;
+  }
+}
+
+.aurora-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: var(--aurora-opacity);
+}
+
+.aurora-blob {
+  position: absolute;
+  width: 60vmax;
+  height: 60vmax;
+  border-radius: 9999px;
+  will-change: transform;
+}
+
+.aurora-blob-a {
+  top: -25vmax;
+  left: -15vmax;
+  background: radial-gradient(closest-side, hsl(var(--aurora-1) / 0.9), transparent);
+  animation: aurora-drift-a 26s ease-in-out infinite alternate;
+}
+
+.aurora-blob-b {
+  top: -10vmax;
+  right: -25vmax;
+  background: radial-gradient(closest-side, hsl(var(--aurora-2) / 0.7), transparent);
+  animation: aurora-drift-b 32s ease-in-out infinite alternate;
+}
+
+.aurora-blob-c {
+  bottom: -35vmax;
+  left: 20vmax;
+  background: radial-gradient(closest-side, hsl(var(--aurora-3) / 0.6), transparent);
+  animation: aurora-drift-c 38s ease-in-out infinite alternate;
+}
+
+/* A faint dot grid that fades out from the top, for depth. */
+.aurora-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(hsl(var(--foreground) / 0.12) 1px, transparent 1px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 55% at 50% 0%, black, transparent);
+  mask-image: radial-gradient(ellipse 80% 55% at 50% 0%, black, transparent);
+}
+
+@keyframes aurora-drift-a {
+  to {
+    transform: translate3d(18vmax, 10vmax, 0) scale(1.15);
+  }
+}
+
+@keyframes aurora-drift-b {
+  to {
+    transform: translate3d(-16vmax, 14vmax, 0) scale(0.9);
+  }
+}
+
+@keyframes aurora-drift-c {
+  to {
+    transform: translate3d(-12vmax, -16vmax, 0) scale(1.2);
+  }
+}
+
+/* Theme switches reveal the new theme as a growing circle (see
+   lib/theme-transition.ts); the default cross-fade is turned off for it. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
 }
