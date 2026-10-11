@@ -1,12 +1,11 @@
 'use client'
 
-import { LogOut, Monitor, Moon, Sun } from 'lucide-react'
+import { ChevronsUpDown, LogOut, Monitor, Moon, Sun } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import * as React from 'react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,48 +17,68 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ROUTES } from '@/lib/constants'
-import { initialsOf } from '@/lib/utils'
+import { originOf, switchTheme, type ThemeChoice } from '@/lib/theme-transition'
+import { cn, initialsOf } from '@/lib/utils'
 
 interface UserMenuProps {
   user: { name: string | null; email: string | null; image: string | null }
+  /** Avatar only, for the collapsed rail. */
+  compact?: boolean
 }
 
-export function UserMenu({ user }: UserMenuProps) {
+export function UserMenu({ user, compact = false }: UserMenuProps) {
   const { theme, setTheme } = useTheme()
+  const triggerRef = React.useRef<HTMLButtonElement>(null)
 
   // `theme` is undefined until the client mounts; rendering it during hydration
   // would mismatch the server output.
   const [mounted, setMounted] = React.useState(false)
   React.useEffect(() => setMounted(true), [])
 
+  const avatar = (
+    <span className="rounded-full bg-aurora p-[1.5px]">
+      <Avatar className="size-7 border-2 border-background">
+        {user.image && <AvatarImage src={user.image} alt="" />}
+        <AvatarFallback className="text-[10px] font-semibold">
+          {initialsOf(user.name ?? user.email)}
+        </AvatarFallback>
+      </Avatar>
+    </span>
+  )
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="h-auto w-full justify-start gap-2 px-2 py-2 text-left"
+        <button
+          ref={triggerRef}
+          type="button"
+          className={cn(
+            'flex items-center gap-2.5 rounded-xl text-left transition-colors hover:bg-foreground/[0.05]',
+            compact ? 'p-1' : 'w-full border bg-foreground/[0.02] px-2.5 py-2 glass-border',
+          )}
         >
-          <Avatar className="size-7 shrink-0">
-            {user.image && <AvatarImage src={user.image} alt="" />}
-            <AvatarFallback>{initialsOf(user.name ?? user.email)}</AvatarFallback>
-          </Avatar>
-
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium">
-              {user.name ?? 'Account'}
-            </span>
-            <span className="block truncate text-xs font-normal text-muted-foreground">
-              {user.email}
-            </span>
-          </span>
-        </Button>
+          {avatar}
+          {compact ? (
+            <span className="sr-only">Account menu for {user.name ?? user.email}</span>
+          ) : (
+            <>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">{user.name ?? 'Account'}</span>
+                <span className="block truncate text-xs text-muted-foreground">{user.email}</span>
+              </span>
+              <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+            </>
+          )}
+        </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="start" side="top" className="w-60">
+      <DropdownMenuContent align="start" side={compact ? 'right' : 'top'} className="w-60">
         <DropdownMenuLabel>Theme</DropdownMenuLabel>
         <DropdownMenuRadioGroup
           value={mounted ? (theme ?? 'system') : 'system'}
-          onValueChange={setTheme}
+          onValueChange={(value) =>
+            switchTheme(value as ThemeChoice, setTheme, originOf(triggerRef.current))
+          }
         >
           <DropdownMenuRadioItem value="light">
             <Sun />
