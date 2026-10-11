@@ -15,6 +15,7 @@ from typing import Any
 import httpx
 
 from ldk_core.errors import ErrorCode, ServiceError, code_for_status
+from ldk_core.observability import outgoing_headers
 from ldk_core.plugins import Plugin, load_manifest
 from ldk_core.ports import Principal
 
@@ -35,7 +36,11 @@ class _HttpTool:
 
     async def _request(self, method: str, path: str, **kwargs: Any) -> Any:
         async with httpx.AsyncClient(
-            base_url=self.base_url, timeout=self._timeout, transport=self._transport
+            base_url=self.base_url,
+            timeout=self._timeout,
+            transport=self._transport,
+            # The services log under this id too, so a tool call is traceable.
+            headers=outgoing_headers(),
         ) as client:
             try:
                 res = await client.request(method, path, **kwargs)

@@ -6,6 +6,7 @@ import httpx
 
 from devkit_common.http import error_detail
 from ldk_core.errors import ErrorCode, ServiceError, code_for_status
+from ldk_core.observability import outgoing_headers
 
 
 class LLMServiceClient:
@@ -15,8 +16,19 @@ class LLMServiceClient:
     be reached, otherwise the code matching its response status.
     """
 
-    def __init__(self, base_url: str, timeout: float) -> None:
-        self._client = httpx.AsyncClient(base_url=base_url.rstrip("/"), timeout=timeout)
+    def __init__(
+        self,
+        base_url: str,
+        timeout: float,
+        *,
+        transport: httpx.AsyncBaseTransport | None = None,
+    ) -> None:
+        self._client = httpx.AsyncClient(
+            base_url=base_url.rstrip("/"),
+            timeout=timeout,
+            transport=transport,
+            event_hooks={"request": [_forward_request_id]},
+        )
 
     async def models(self) -> list[str]:
         try:
@@ -110,6 +122,12 @@ class LLMServiceClient:
 
     async def close(self) -> None:
         await self._client.aclose()
+
+
+async def _forward_request_id(request: httpx.Request) -> None:
+    """Carry the caller's request id to llm-service, so one id spans both logs."""
+    for name, value in outgoing_headers().items():
+        request.headers.setdefault(name, value)
 
 
 def _unavailable(exc: httpx.HTTPError) -> ServiceError:

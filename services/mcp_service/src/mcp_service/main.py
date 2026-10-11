@@ -17,7 +17,7 @@ from mcp.server.lowlevel import Server
 from mcp.server.stdio import stdio_server
 
 from devkit_common.config import Settings, get_settings
-from ldk_core.observability import configure_logging
+from ldk_core.observability import configure_logging, correlation_scope
 from ldk_core.plugins import TOOL, PluginKind, PluginRegistry
 from ldk_core.ports import Tool
 
@@ -69,7 +69,10 @@ def create_server(name: str, tools: list[Tool]) -> Server[Any, Any]:
         if tool is None:
             raise ValueError(f"Unknown tool: {name}")
         # MCP has no authentication until Phase 4 (#14), so there is no caller.
-        result = await tool.invoke(arguments, principal=None)
+        # stdio has no request headers: give each call its own id, which the
+        # tools forward to the services they call.
+        with correlation_scope():
+            result = await tool.invoke(arguments, principal=None)
         return _content(result), {"result": result}
 
     return server

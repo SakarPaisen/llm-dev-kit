@@ -57,6 +57,17 @@ def correlation_scope(correlation_id: str | None = None) -> Iterator[str]:
         _current.reset(token)
 
 
+def outgoing_headers() -> dict[str, str]:
+    """Headers that carry the current id to another service.
+
+    Add them to every call one service makes to another, so the id follows the
+    request across hops instead of each service minting its own. Empty outside
+    a request.
+    """
+    cid = get_correlation_id()
+    return {"X-Request-ID": cid} if cid else {}
+
+
 def accept_incoming(value: str | None) -> str | None:
     """Return ``value`` if it is safe to reuse as an id, else ``None``.
 
