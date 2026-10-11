@@ -34,7 +34,9 @@ const mocks = vi.hoisted(() => {
     editMessage: () => undefined,
     stop: () => undefined,
   }
-  return { markdownRenders, headerProps, composerProps, mutate, store, actions }
+  // What the hook's query holds; the server retitles a chat after its first answer.
+  const live: { chat: ChatDetail | undefined } = { chat: undefined }
+  return { markdownRenders, headerProps, composerProps, mutate, store, actions, live }
 })
 
 // Counts how often each message body renders: a MessageItem that re-renders
@@ -67,6 +69,7 @@ vi.mock('@/hooks/use-chat-stream', () => ({
   useChatStream: (): UseChatStreamResult => {
     const { messages } = React.useSyncExternalStore(mocks.store.subscribe, mocks.store.get)
     return {
+      chat: mocks.live.chat,
       messages,
       status: 'streaming',
       isLoading: false,
@@ -151,5 +154,22 @@ describe('ChatView while an answer streams', () => {
       expect(props.onSend).toBe(first.composer?.onSend)
       expect(props.onStop).toBe(first.composer?.onStop)
     }
+  })
+
+  it('shows the title the server gave the chat after its first answer', () => {
+    mocks.store.set([])
+    mocks.live.chat = { ...chat, title: 'Halcyon launch date' }
+
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <TooltipProvider>
+          <ChatView chat={{ ...chat, title: 'New chat' }} user={{ name: null, image: null, email: null }} />
+        </TooltipProvider>
+      </QueryClientProvider>,
+    )
+
+    expect((mocks.headerProps.at(-1)?.chat as ChatDetail).title).toBe('Halcyon launch date')
+    expect(document.title).toBe('Halcyon launch date · LLM Dev Kit')
+    mocks.live.chat = undefined
   })
 })

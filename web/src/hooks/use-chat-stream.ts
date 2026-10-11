@@ -18,6 +18,8 @@ interface UseChatStreamOptions {
 }
 
 export interface UseChatStreamResult {
+  /** The latest server detail; titles change after the first answer. */
+  chat: ChatDetail | undefined
   messages: ChatMessage[]
   status: StreamStatus
   isLoading: boolean
@@ -310,6 +312,7 @@ export function useChatStream({
   }, [])
 
   return {
+    chat: data,
     messages,
     status,
     isLoading: isLoading && messages.length === 0,

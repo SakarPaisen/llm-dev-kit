@@ -30,6 +30,7 @@ export function ChatView({ chat, user }: ChatViewProps) {
   modelRef.current = model
 
   const {
+    chat: live,
     messages,
     status,
     isLoading,
@@ -39,6 +40,15 @@ export function ChatView({ chat, user }: ChatViewProps) {
     stop,
     isBusy,
   } = useChatStream({ chatId: chat.id, initialData: chat })
+
+  // The server titles a chat after its first answer; the prop is the title it
+  // had when the page rendered.
+  const title = live?.title ?? chat.title
+  const headerChat = live ?? chat
+
+  React.useEffect(() => {
+    document.title = `${title} · LLM Dev Kit`
+  }, [title])
 
   // Server data is authoritative after a navigation between chats.
   React.useEffect(() => {
@@ -105,7 +115,7 @@ export function ChatView({ chat, user }: ChatViewProps) {
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col">
       <ChatHeader
-        chat={chat}
+        chat={headerChat}
         model={model}
         onModelChange={handleModelChange}
         isBusy={isBusy}
