@@ -171,7 +171,30 @@ Sign-in compares against a dummy hash when no user exists, so a wrong email and
 a wrong password take the same time and the endpoint does not leak which
 addresses are registered. `callbackUrl` is restricted to same-origin relative
 paths to prevent an open redirect. GitHub OAuth registers itself only when both
-`AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET` are present.
+`AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET` are present, and Keycloak single
+sign-on when `AUTH_KEYCLOAK_ID`, `_SECRET` and `_ISSUER` are. Accounts are never
+linked by email: an external sign-in whose email already has an account fails
+with `OAuthAccountNotLinked`, explained on the sign-in page.
+
+### Identity for the Python services
+
+This app is the identity service the rest of the stack trusts
+(`server/identity/`):
+
+- **Roles.** `User.role` is `admin`, `user` or `viewer` (`lib/roles.ts`, which
+  must match `ldk_core.auth`). `ensureAdmin()` promotes the earliest user
+  whenever there is no admin. It runs in the registration transaction, on
+  OAuth user creation, and at startup (`instrumentation.ts`).
+- **Access tokens.** Every call to rag-service carries a 5-minute RS256 token
+  for the signed-in user (`sub`, `roles`, `scope`, `iss`, `aud`), minted from
+  the role in the database, so a demotion bites within one token lifetime.
+- **Signing keys** live in `SigningKey`, their private half AES-256-GCM
+  encrypted under a key derived from `AUTH_SECRET`. A new key is made every 30
+  days, and `/.well-known/jwks.json` publishes the public halves. A changed
+  `AUTH_SECRET` rotates instead of failing.
+- **Personal API keys** (`sk-ldk-…`) are stored as SHA-256 hashes and shown
+  once. `POST /api/identity/token` exchanges one for an access token; the
+  Python services call it and cache the result for a minute.
 
 ## Scripts
 
@@ -197,11 +220,13 @@ paths to prevent an open redirect. GitHub OAuth registers itself only when both
 | `AUTH_SECRET` | ✓ | — | ≥ 32 chars; `openssl rand -base64 32` |
 | `AUTH_URL` | | `http://localhost:3000` | Public origin |
 | `LLM_BASE_URL` | | `http://localhost:8080/api/rag/v1` | OpenAI-compatible `/v1` |
-| `LLM_API_KEY` | | `sk-local` | `sk-local*` keeps rag-service offline |
+| `LLM_API_KEY` | | — | Only for a third-party backend. Unset (or `sk-local*`) sends each user's own access token, which rag-service requires |
+| `IDENTITY_ISSUER` / `IDENTITY_AUDIENCE` | | `llm-dev-kit-web` / `llm-dev-kit` | `iss` and `aud` of access tokens; must match `AUTH_ISSUER` / `AUTH_AUDIENCE` on the Python services |
 | `DEFAULT_MODEL` | | `llama3.1` | |
 | `LLM_REQUEST_TIMEOUT_MS` | | `120000` | |
 | `ALLOW_REGISTRATION` | | `true` | `false` locks to existing users |
 | `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | | — | Both needed to enable OAuth |
+| `AUTH_KEYCLOAK_ID` / `_SECRET` / `_ISSUER` | | — | All three enable single sign-on; `_INTERNAL_ISSUER` is how the server reaches the same issuer from inside Docker |
 
 Configuration is validated with Zod at startup (`lib/env.ts`), so a missing or
 malformed value fails immediately with a readable message rather than surfacing

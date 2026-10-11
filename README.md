@@ -103,10 +103,11 @@ The next major version turns the kit into a sovereign, local-first private AI wo
 | --- | --- | --- |
 | ✅ | **1 — Plan** | [docs/v2/PLAN.md](docs/v2/PLAN.md) |
 | ✅ | **2 — Core refactor** | `ldk_core` interfaces + plugin registry; providers, stores, loaders, chunkers and MCP tools are plugins; CI gates every image |
-| | 3 — Sovereign mode · 4 — Auth · 5 — Per-user ingestion on pgvector | |
+| ✅ | **4 — Auth** | Every API call needs a session or a personal API key; roles; optional Keycloak SSO. Breaking for `/v1`: see [MIGRATION.md](docs/v2/MIGRATION.md) |
+| | 3 — Sovereign mode · 5 — Per-user ingestion on pgvector | |
 | | 6 — Limits, observability, audit · 7 — Admin · 8 — Plugin marketplace · 9 — Distribution | |
 
-Until Phase 4, the Python APIs (including `/v1` and PDF ingest) have no authentication and anyone who can reach the app can register an account. That is why the gateway listens on `127.0.0.1` by default: only this machine can reach it. Setting `GATEWAY_BIND=0.0.0.0` in `.env` opens all of it to your network; if you do, also set `ALLOW_REGISTRATION=false`.
+Every API call now needs a credential: the browser's session, or a personal API key from the account menu. The first account registered becomes the admin. The gateway still listens on `127.0.0.1` by default. If you set `GATEWAY_BIND=0.0.0.0` to let your network in, registration stays open until you set `ALLOW_REGISTRATION=false`. Documents are still shared by every user until Phase 5.
 
 ## Services
 
@@ -167,7 +168,7 @@ npm run dev                   # http://localhost:3000
 The stack is fully offline by default. Cloud calls go through the **LiteLLM** plugin; a provider LiteLLM doesn't cover can be added as its own plugin (see [Plugins](#plugins)). To enable cloud models, either:
 
 - **In `.env`** (server-wide): set `OPENAI_API_KEY`, `GEMINI_API_KEY` and/or `ANTHROPIC_API_KEY`. Models are addressed as `openai/gpt-4o`, `gemini/gemini-2.5-flash`, `anthropic/claude-sonnet-5`, etc. These then appear in the web app's model picker.
-- **Per request** (direct API calls): pass `api_key` in the request body to `/api/rag/chat`, or as a `Bearer` token to `/v1/chat/completions` — never stored server-side. This is an API-level feature; the web app itself has no per-user key field, so it uses the server-wide keys above.
+- **Per request** (direct API calls): pass `api_key` in the request body to `/api/rag/chat`; it is never stored server-side. On `/v1` the Bearer token is now your identity, so it can no longer carry a cloud key (see [MIGRATION.md](docs/v2/MIGRATION.md)). The web app has no per-user key field, so it uses the server-wide keys above.
 
 `OPENAI_BASE_URL` may point at any OpenAI-compatible endpoint (Groq, Together, vLLM, LM Studio, ...). Embeddings always stay local so your vector store keeps one consistent embedding space; the embedding model is fixed per deployment (`DEFAULT_EMBEDDING_MODEL`, plus `EMBEDDING_DIMENSION` for models llm-service doesn't already know).
 
@@ -175,39 +176,47 @@ Logging is set with `LOG_LEVEL` and `LOG_FORMAT` (`json`, the default, or `conso
 
 ## API Reference
 
-All examples go through the load balancer at `:8080`.
+All examples go through the load balancer at `:8080`. Everything except the
+health checks needs a personal API key: account menu → **API keys**.
 
 ```bash
-# health
+KEY=sk-ldk-...   # your key
+
+# health (public)
 curl http://localhost:8080/api/llm/health
 curl http://localhost:8080/api/rag/health
 
 # all available models (local + configured cloud)
-curl http://localhost:8080/api/llm/models
+curl http://localhost:8080/api/llm/models -H "Authorization: Bearer $KEY"
 
 # RAG chat — offline model
 curl -X POST http://localhost:8080/api/rag/chat \
-  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"message":"Summarize my knowledge base"}'
 
 # RAG chat — streaming (NDJSON: meta, deltas, done)
 curl -N -X POST http://localhost:8080/api/rag/chat/stream \
-  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"message":"Summarize my knowledge base"}'
 
-# RAG chat — cloud model with your own key
+# RAG chat — cloud model with your own provider key
 curl -X POST http://localhost:8080/api/rag/chat \
-  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"message":"hello","model":"gemini/gemini-2.5-flash","api_key":"AIza..."}'
 
 # OpenAI-compatible API (works with any OpenAI SDK)
 curl -X POST http://localhost:8080/v1/chat/completions \
-  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"model":"llama3.1","messages":[{"role":"user","content":"Summarize my knowledge base"}]}'
 
-# ingest a PDF into the RAG index
-curl -X POST http://localhost:8080/api/rag/ingest/pdf -F "file=@mydoc.pdf"
+# ingest a PDF into the RAG index (role user or admin)
+curl -X POST http://localhost:8080/api/rag/ingest/pdf \
+  -H "Authorization: Bearer $KEY" -F "file=@mydoc.pdf"
 ```
+
+Roles decide what a key can do: `viewer` chats, `user` also adds documents,
+`admin` also clears the index and the cache. A missing or invalid key is a
+`401`, a key without the permission a `403`.
 
 ### Errors and request ids
 
@@ -230,7 +239,7 @@ from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(
     base_url="http://localhost:8080/v1",
-    api_key="sk-local-rag",   # placeholder = stay offline; real key = cloud models
+    api_key="sk-ldk-...",     # your personal API key (account menu → API keys)
     model="llama3.1",         # or "gemini/gemini-2.5-flash", "openai/gpt-4o", ...
 )
 print(llm.invoke("Summarize my knowledge base").content)
@@ -239,9 +248,11 @@ print(llm.invoke("Summarize my knowledge base").content)
 ## MCP Usage
 
 `mcp.json` is included for MCP clients. Tools: `list_models`, `ask_llm_dev_kit`.
+The tools act as the owner of the API key in `LDK_API_KEY`. Set it in
+`mcp.json`'s `env` or in `.env`; without it every tool call returns 401.
 
 ```bash
-docker compose --profile mcp run --rm mcp
+LDK_API_KEY=sk-ldk-... docker compose --profile mcp run --rm mcp
 ```
 
 ## Scaling
@@ -250,7 +261,7 @@ docker compose --profile mcp run --rm mcp
 
 ```bash
 docker compose up -d --scale rag-service=4
-docker compose restart nginx   # re-resolve upstream IPs
+# nginx re-resolves the service name every 10 s; no restart needed
 ```
 
 ## Plugins
@@ -361,6 +372,7 @@ Full walkthrough and more failure modes: [docs/setup.md](docs/setup.md).
 | [docs/v2/PLAN.md](docs/v2/PLAN.md) | The v2 plan: target architecture, interfaces, migration and phases |
 | [docs/setup.md](docs/setup.md) | Step-by-step setup, PDF ingestion, and troubleshooting |
 | [docs/usage.md](docs/usage.md) | Adding documents, chatting, and letting other people in |
+| [docs/v2/MIGRATION.md](docs/v2/MIGRATION.md) | Breaking changes in v2 and what to do about each, starting with `/v1` authentication |
 | [web/README.md](web/README.md) | Frontend architecture, environment variables, and feature detail |
 
 ## License

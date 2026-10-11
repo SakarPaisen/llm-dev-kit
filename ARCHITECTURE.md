@@ -194,5 +194,5 @@ base:
 | --- | --- | --- |
 | Fully offline (default) | no keys set | All chat + embeddings via local Ollama |
 | Server-wide cloud | `OPENAI_API_KEY` / `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` in `.env` | `openai/*`, `gemini/*`, `anthropic/*` models usable by everyone |
-| Bring-your-own-key | key pasted in the UI (sent as `api_key`), or a real Bearer key on `/v1` | Key used for that request only, never stored |
+| Bring-your-own-key | `api_key` in the body of `/api/rag/chat` (a Bearer key on `/v1` only under `ALLOW_LEGACY_ANONYMOUS`) | Key used for that request only, never stored |
 | Alternative OpenAI-compatible host | `OPENAI_BASE_URL` | Groq/Together/vLLM/LM Studio behind the same `openai/` prefix |

@@ -75,9 +75,8 @@ curl http://localhost:8080/api/llm/health
 
 `nginx` is the **only** published port, and it listens on `127.0.0.1` by default.
 To reach the stack from other machines on your network, set `GATEWAY_BIND=0.0.0.0`
-in `.env` — but read the warning next to it in `.env.example` first: until
-Phase 4 adds authentication, that exposes the APIs and account registration to
-everyone on the network. If `docker compose ps` shows services
+in `.env`. The APIs need a session or an API key, but registration stays open
+until you set `ALLOW_REGISTRATION=false`. If `docker compose ps` shows services
 as `Exited`, nothing is listening on `:8080` and the whole UI — not just
 RAG — will be unreachable; see [Troubleshooting](#troubleshooting).
 
@@ -98,22 +97,26 @@ from answers, and letting other people on your network sign in.
 ## 5. Index a PDF
 
 Upload through the API; the chat app has no upload button yet
-([#15](https://github.com/sameeralam3127/llm-dev-kit/issues/15)). The file is
-chunked, embedded locally, and indexed into ChromaDB:
+([#15](https://github.com/sameeralam3127/llm-dev-kit/issues/15)). Create an API
+key first: account menu → **API keys**. The file is chunked, embedded locally,
+and indexed into ChromaDB:
 
 ```bash
-curl -X POST http://localhost:8080/api/rag/ingest/pdf -F "file=@mydoc.pdf"
+KEY=sk-ldk-...   # your key
+curl -X POST http://localhost:8080/api/rag/ingest/pdf \
+  -H "Authorization: Bearer $KEY" -F "file=@mydoc.pdf"
 # {"chunks": 12}
 ```
 
-Then just chat — relevant chunks are retrieved automatically. Useful checks:
+Then just chat — relevant chunks are retrieved automatically. Useful checks
+(these two need the admin role, which the first account has):
 
 ```bash
 # how many chunks are currently indexed
-curl http://localhost:8080/api/rag/documents/stats
+curl http://localhost:8080/api/rag/documents/stats -H "Authorization: Bearer $KEY"
 
 # wipe the PDF index
-curl -X POST http://localhost:8080/api/rag/documents/clear
+curl -X POST http://localhost:8080/api/rag/documents/clear -H "Authorization: Bearer $KEY"
 ```
 
 The PDF must contain selectable text — scanned image pages produce zero
@@ -212,8 +215,12 @@ docker compose restart nginx   # re-resolve upstream IPs
 - **The app can't be reached from another machine** — expected: the gateway
   binds to `127.0.0.1`. Set `GATEWAY_BIND=0.0.0.0` in `.env` (with
   `ALLOW_REGISTRATION=false`) and run `docker compose up -d`.
-- **Cloud model errors** — `401` means no/invalid API key: set it in `.env`
-  or pass `api_key` per request.
+- **`401` from the APIs** — the call has no personal API key, or the key
+  was revoked: send `Authorization: Bearer sk-ldk-...` (account menu → API
+  keys). `403` means the key's role cannot do that (only `user` and `admin`
+  ingest; only `admin` clears). See [MIGRATION.md](v2/MIGRATION.md).
+- **Cloud model errors** — `401` with a message about the provider means its
+  key is missing or invalid: set it in `.env` or pass `api_key` per request.
 - **PDF retrieval returns nothing** — the PDF must contain selectable text,
-  not scanned images; confirm chunks were actually indexed with
-  `curl http://localhost:8080/api/rag/documents/stats`.
+  not scanned images; confirm chunks were actually indexed with the admin
+  key: `curl http://localhost:8080/api/rag/documents/stats -H "Authorization: Bearer $KEY"`.
