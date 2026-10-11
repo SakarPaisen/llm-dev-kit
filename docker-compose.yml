@@ -183,7 +183,7 @@ services:
   # host access while debugging, see docs/setup.md ("Reaching Redis or Chroma
   # from the host").
   redis:
-    image: redis:7-alpine
+    image: redis:7.4.11-alpine
     command: redis-server --save "" --appendonly no
     deploy:
       resources:
