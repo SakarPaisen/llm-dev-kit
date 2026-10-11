@@ -34,4 +34,5 @@ export const ROUTES = {
   register: '/register',
   chat: (id: string) => `/c/${id}`,
   share: (shareId: string) => `/share/${shareId}`,
+  admin: '/admin',
 } as const

@@ -10,6 +10,13 @@ export interface CompletionRequest {
   messages: ProviderMessage[]
   signal?: AbortSignal
   temperature?: number
+  /** Bearer credential for this call: the user's access token. */
+  authorization?: string
+}
+
+export interface ListModelsOptions {
+  signal?: AbortSignal
+  authorization?: string
 }
 
 export interface ProviderModel {
@@ -25,7 +32,7 @@ export interface ProviderModel {
  */
 export interface ChatProvider {
   readonly name: string
-  listModels(signal?: AbortSignal): Promise<ProviderModel[]>
+  listModels(options?: ListModelsOptions): Promise<ProviderModel[]>
   streamCompletion(request: CompletionRequest): AsyncIterable<string>
 }
 

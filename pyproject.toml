@@ -19,6 +19,7 @@ src = [
     "services/plugins/loader_pdf/src",
     "services/plugins/chunker_fixed/src",
     "services/plugins/tools/src",
+    "services/plugins/auth/src",
     "services/devkit_common/src",
     "services/llm_service/src",
     "services/rag_service/src",
@@ -67,6 +68,7 @@ mypy_path = [
     "services/plugins/loader_pdf/src",
     "services/plugins/chunker_fixed/src",
     "services/plugins/tools/src",
+    "services/plugins/auth/src",
     "services/devkit_common/src",
     "services/llm_service/src",
     "services/rag_service/src",
@@ -81,6 +83,7 @@ packages = [
     "ldk_plugin_loader_pdf",
     "ldk_plugin_chunker_fixed",
     "ldk_plugin_tools",
+    "ldk_plugin_auth",
     "devkit_common",
     "llm_service",
     "rag_service",
@@ -110,6 +113,8 @@ module = [
     "ldk_plugin_chunker_fixed.*",
     "ldk_plugin_tools",
     "ldk_plugin_tools.*",
+    "ldk_plugin_auth",
+    "ldk_plugin_auth.*",
 ]
 disallow_any_generics = true
 disallow_subclassing_any = true
@@ -136,6 +141,7 @@ pythonpath = [
     "services/plugins/loader_pdf/src",
     "services/plugins/chunker_fixed/src",
     "services/plugins/tools/src",
+    "services/plugins/auth/src",
     "services/devkit_common/src",
     "services/llm_service/src",
     "services/rag_service/src",

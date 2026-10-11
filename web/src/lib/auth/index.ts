@@ -1,13 +1,16 @@
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import bcrypt from 'bcryptjs'
-import NextAuth, { type NextAuthConfig } from 'next-auth'
+import NextAuth, { customFetch, type NextAuthConfig } from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import GitHub from 'next-auth/providers/github'
+import Keycloak from 'next-auth/providers/keycloak'
 
 import { authConfig } from '@/lib/auth/config'
+import { rewritingFetch } from '@/lib/auth/rewriting-fetch'
 import { db } from '@/lib/db'
 import { getEnv } from '@/lib/env'
 import { loginSchema } from '@/lib/validations/auth'
+import { ensureAdmin } from '@/server/identity/admin'
 
 const BCRYPT_ROUNDS = 12
 
@@ -57,10 +60,29 @@ function buildProviders(): NextAuthConfig['providers'] {
 
   if (env.AUTH_GITHUB_ID && env.AUTH_GITHUB_SECRET) {
     providers.push(
+      // No allowDangerousEmailAccountLinking: whoever controls a GitHub
+      // account with a matching email would otherwise take over the local
+      // account. A clash now fails with OAuthAccountNotLinked.
       GitHub({
         clientId: env.AUTH_GITHUB_ID,
         clientSecret: env.AUTH_GITHUB_SECRET,
-        allowDangerousEmailAccountLinking: true,
+      }),
+    )
+  }
+
+  if (ssoConfigured()) {
+    const issuer = env.AUTH_KEYCLOAK_ISSUER!.replace(/\/$/, '')
+    const internal = env.AUTH_KEYCLOAK_INTERNAL_ISSUER?.replace(/\/$/, '')
+    providers.push(
+      Keycloak({
+        clientId: env.AUTH_KEYCLOAK_ID!,
+        clientSecret: env.AUTH_KEYCLOAK_SECRET!,
+        issuer,
+        // The browser and the tokens use the public issuer URL; this server
+        // fetches discovery, tokens and keys through the internal one.
+        ...(internal && internal !== issuer
+          ? { [customFetch]: rewritingFetch(issuer, internal) }
+          : {}),
       }),
     )
   }
@@ -68,15 +90,29 @@ function buildProviders(): NextAuthConfig['providers'] {
   return providers
 }
 
+function ssoConfigured(): boolean {
+  const env = getEnv()
+  return Boolean(env.AUTH_KEYCLOAK_ID && env.AUTH_KEYCLOAK_SECRET && env.AUTH_KEYCLOAK_ISSUER)
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(db),
   providers: buildProviders(),
+  events: {
+    // An OAuth sign-in can create the very first user.
+    async createUser() {
+      await ensureAdmin()
+    },
+  },
   secret: process.env.AUTH_SECRET,
 })
 
-/** True when GitHub sign-in should be offered in the UI. */
-export function oauthProvidersEnabled(): { github: boolean } {
+/** Which external sign-in buttons the UI should offer. */
+export function oauthProvidersEnabled(): { github: boolean; sso: boolean } {
   const env = getEnv()
-  return { github: Boolean(env.AUTH_GITHUB_ID && env.AUTH_GITHUB_SECRET) }
+  return {
+    github: Boolean(env.AUTH_GITHUB_ID && env.AUTH_GITHUB_SECRET),
+    sso: ssoConfigured(),
+  }
 }

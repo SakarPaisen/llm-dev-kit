@@ -2,7 +2,15 @@
   "mcpServers": {
     "llm-dev-kit": {
       "command": "docker",
-      "args": ["compose", "run", "--rm", "mcp"]
+      "args": [
+        "compose",
+        "run",
+        "--rm",
+        "mcp"
+      ],
+      "env": {
+        "LDK_API_KEY": "sk-ldk-replace-with-your-key"
+      }
     }
   }
 }

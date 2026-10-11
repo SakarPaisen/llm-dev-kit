@@ -1,0 +1,93 @@
+{
+  "realm": "llm-dev-kit",
+  "displayName": "LLM Dev Kit",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "bruteForceProtected": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "offline_access",
+        "description": "${role_offline-access}"
+      },
+      {
+        "name": "uma_authorization",
+        "description": "${role_uma_authorization}"
+      },
+      {
+        "name": "admin",
+        "description": "Everything, including clearing the index and the cache."
+      },
+      {
+        "name": "user",
+        "description": "Chat and add documents."
+      },
+      {
+        "name": "viewer",
+        "description": "Chat only."
+      },
+      {
+        "name": "default-roles-llm-dev-kit",
+        "description": "Granted to every new user: llm-dev-kit's user role plus Keycloak's usual defaults.",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "offline_access",
+            "uma_authorization",
+            "user"
+          ],
+          "client": {
+            "account": [
+              "view-profile",
+              "manage-account"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "defaultRole": {
+    "name": "default-roles-llm-dev-kit"
+  },
+  "clients": [
+    {
+      "clientId": "llm-dev-kit-web",
+      "name": "LLM Dev Kit",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${AUTH_KEYCLOAK_SECRET}",
+      "redirectUris": [
+        "${WEB_PUBLIC_URL}/api/auth/callback/keycloak"
+      ],
+      "webOrigins": [
+        "${WEB_PUBLIC_URL}"
+      ],
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "${WEB_PUBLIC_URL}/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience: llm-dev-kit",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "llm-dev-kit",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+[project]
+name = "ldk-plugin-auth"
+version = "0.1.0"
+description = "llm-dev-kit plugins: verify the web app's tokens and API keys (auth.local) or any OIDC issuer's tokens (auth.oidc)."
+requires-python = ">=3.12"
+license = "MIT"
+dependencies = [
+    "httpx>=0.27",
+    "ldk-core",
+    "pyjwt[crypto]>=2.8",
+]
+
+[project.entry-points."llm_dev_kit.plugins"]
+"auth.local" = "ldk_plugin_auth:local_plugin"
+"auth.oidc" = "ldk_plugin_auth:oidc_plugin"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ldk_plugin_auth = ["py.typed", "manifests/*.json"]
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"

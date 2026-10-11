@@ -4,6 +4,9 @@ import type {
   Folder,
   ModelInfo,
 } from '@/types/chat'
+import type { Role } from '@/lib/roles'
+import type { AdminHealth, AdminUser } from '@/types/admin'
+import type { ApiKeySummary, CreatedApiKey } from '@/types/api-key'
 import type {
   CreateChatInput,
   CreateFolderInput,
@@ -137,6 +140,37 @@ export const api = {
     },
   },
 
+  admin: {
+    users(signal?: AbortSignal): Promise<AdminUser[]> {
+      return request('/api/admin/users', { signal })
+    },
+
+    setRole(userId: string, role: Role): Promise<AdminUser> {
+      return request(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      })
+    },
+
+    health(signal?: AbortSignal): Promise<AdminHealth> {
+      return request('/api/admin/health', { signal })
+    },
+  },
+
+  keys: {
+    list(signal?: AbortSignal): Promise<ApiKeySummary[]> {
+      return request('/api/keys', { signal })
+    },
+
+    create(name: string): Promise<CreatedApiKey> {
+      return request('/api/keys', { method: 'POST', body: JSON.stringify({ name }) })
+    },
+
+    revoke(keyId: string): Promise<void> {
+      return request(`/api/keys/${keyId}`, { method: 'DELETE' })
+    },
+  },
+
   auth: {
     async register(input: {
       name: string
@@ -157,4 +191,7 @@ export const queryKeys = {
   chat: (chatId: string) => ['chat', chatId] as const,
   folders: () => ['folders'] as const,
   models: () => ['models'] as const,
+  apiKeys: () => ['api-keys'] as const,
+  adminUsers: () => ['admin', 'users'] as const,
+  adminHealth: () => ['admin', 'health'] as const,
 }

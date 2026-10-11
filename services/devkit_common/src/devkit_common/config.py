@@ -51,6 +51,27 @@ class Settings(CoreSettings):
     chroma_host: str = Field(default="localhost", alias="CHROMA_HOST")
     chroma_port: int = Field(default=8000, alias="CHROMA_PORT")
 
+    # Authentication. The web app is the identity service: it signs short-lived
+    # access tokens and exchanges personal API keys for them. These services
+    # verify every caller themselves and never trust the gateway.
+    auth_jwks_url: str = Field(
+        default="http://web:3000/.well-known/jwks.json", alias="AUTH_JWKS_URL"
+    )
+    auth_token_url: str = Field(
+        default="http://web:3000/api/identity/token", alias="AUTH_TOKEN_URL"
+    )
+    auth_issuer: str = Field(default="llm-dev-kit-web", alias="AUTH_ISSUER")
+    auth_audience: str = Field(default="llm-dev-kit", alias="AUTH_AUDIENCE")
+    # Optional: also accept tokens from an OIDC issuer directly (e.g. Keycloak).
+    auth_oidc_issuer: str | None = Field(default=None, alias="AUTH_OIDC_ISSUER")
+    auth_oidc_discovery_url: str | None = Field(default=None, alias="AUTH_OIDC_DISCOVERY_URL")
+    auth_oidc_audience: str = Field(default="llm-dev-kit", alias="AUTH_OIDC_AUDIENCE")
+    auth_oidc_roles_claim: str = Field(default="realm_access.roles", alias="AUTH_OIDC_ROLES_CLAIM")
+    # Pre-v2 behaviour, for one release: no credential means full access.
+    allow_legacy_anonymous: bool = Field(default=False, alias="ALLOW_LEGACY_ANONYMOUS")
+    # mcp-service's own credential, a personal API key (sk-ldk-...).
+    ldk_api_key: str | None = Field(default=None, alias="LDK_API_KEY", repr=False)
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

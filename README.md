@@ -1,368 +1,432 @@
+<div align="center">
+
 # LLM Dev Kit
 
-**A local-first, production-structured LLM workspace that runs entirely on your own machine.**
+**A private AI workspace for your team. Chat with your documents on your own hardware.**
 
-Chat through a full-featured Next.js app with accounts, persistent history, folders and sharing. Answer with retrieval-augmented generation over your own PDFs. Run entirely offline on Ollama, or route to cloud models (OpenAI, Gemini, Anthropic) with a single API key. Every service is independently built, deployed and scaled behind an Nginx gateway — the same shape a small production system actually takes, not a toy demo.
+Ask questions in plain language and get answers grounded in your own PDFs,
+from models that run on your machine. Bring in your team with accounts, roles
+and single sign-on. Connect your scripts, notebooks and agents through an
+OpenAI-compatible API and MCP.
 
-![Next.js 15](https://img.shields.io/badge/Next.js-15-black?logo=next.js&logoColor=white)
-![React 19](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/License-MIT-2563eb.svg)](LICENSE)
 ![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Next.js 15](https://img.shields.io/badge/Next.js-15-black?logo=next.js&logoColor=white)
+![Ollama](https://img.shields.io/badge/Ollama-local%20models-black)
 ![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-async-009688?logo=fastapi&logoColor=white)
-![GitHub stars](https://img.shields.io/github/stars/sameeralam3127/llm-dev-kit?style=flat&logo=github)
+![OpenAI compatible](https://img.shields.io/badge/API-OpenAI%20compatible-412991)
 
-Every swappable piece — model providers, embeddings, the vector store, document loaders, chunkers and MCP tools — is a plugin behind a typed interface, so you can replace one without touching the services that use it.
+[Quick start](#quick-start) · [Tour](#a-quick-tour) · [Features](#features) · [Use it from code](#use-it-from-code) · [Architecture](#how-it-works) · [Docs](#documentation)
 
----
+<br>
 
-## Table of Contents
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/chat-dark.jpg">
+  <img src="docs/images/chat.jpg" alt="LLM Dev Kit answering a question from an indexed PDF, with the chat history in the sidebar" width="100%">
+</picture>
 
-- [Highlights](#highlights)
-- [Requirements](#requirements)
-- [Quick Start](#quick-start)
-- [Where the Project Is](#where-the-project-is)
-- [Services](#services)
-- [Chat UI](#chat-ui)
-- [Configuration & Cloud LLMs](#configuration--cloud-llms)
-- [API Reference](#api-reference)
-- [MCP Usage](#mcp-usage)
-- [Scaling](#scaling)
-- [Plugins](#plugins)
-- [Project Layout](#project-layout)
-- [Local Development](#local-development-outside-docker)
-- [Testing](#testing)
-- [Troubleshooting](#troubleshooting)
-- [Learn More](#learn-more)
+</div>
 
 ---
 
-## Highlights
+## Why LLM Dev Kit
 
-- **Full chat application** — a Next.js app ([web/](web/)) with accounts, streaming responses, persistent per-user history, chat folders, edit/regenerate with version history, Markdown + syntax highlighting, and revocable share links.
-- **Nginx gateway** — the single published entrypoint (`:8080`, bound to `127.0.0.1` by default); reverse-proxies the web app and round-robins across `rag-service` replicas. Comes up within seconds of `docker compose up` and serves a branded fallback page while the backend finishes warming up, instead of a blank tab or a raw connection error.
-- **llm-service** — one API for every model: local Ollama by default, or `openai/<model>`, `gemini/<model>` and `anthropic/<model>` routed through **LiteLLM** with true token streaming. Each provider is a plugin; installing another one makes its `prefix/` routable.
-- **rag-service** (2 replicas) — chat with retrieval over ChromaDB (your uploaded PDFs), streaming chat, PDF ingestion, a Redis response cache, and an **OpenAI-compatible `/v1` API** that works with any OpenAI SDK — including LangChain.
-- **mcp-service** — every installed tool plugin exposed over MCP, for use from any MCP-compatible client.
-- **Plugin core** — `ldk_core` defines the interfaces (LLM provider, embedder, vector store, loader, chunker, tool, auth, rate limiter, storage), discovers plugins through Python entry points, and ships a contract test suite per interface that every implementation must pass.
-- **Operable services** — one JSON error shape across the Python services and the web app, structured JSON logs with a request id on every line, and configuration that fails at startup with every bad variable named.
-- **Production-minded Docker setup** — `docker-compose.yml` runs the code baked into each image; hot reload is a separate, opt-in `compose.dev.yml` overlay. Only the gateway is published, on localhost. Third-party images are pinned to exact releases (Redis, Chroma, Ollama) and Dockerfile base images to a release line (`nginx:1.27`, `python:3.12`, `node:22`) so security patches still arrive — no floating `:latest`. Also: BuildKit cache-mount builds (a `requirements.txt` change reinstalls in seconds, not minutes), per-service CPU/memory limits and reservations, non-root Python and web images, and healthchecks that need no extra tools. See [ARCHITECTURE.md](ARCHITECTURE.md) for the full build strategy.
+- **Private by default.** Chat and embeddings run on [Ollama](https://ollama.com)
+  on your own machine. Nothing leaves it unless you choose a cloud model.
+- **Answers you can check.** Upload PDFs and every answer is grounded in the
+  passages it retrieves from them. When the documents do not cover a
+  question, the assistant says so rather than inventing an answer.
+- **Ready for a team.** Accounts, roles (admin, user, viewer), personal API
+  keys, optional Keycloak single sign-on, and an admin page for users and
+  service health.
+- **Open at every seam.** An OpenAI-compatible `/v1` API works with any OpenAI
+  SDK and with LangChain. An MCP server plugs into Claude Desktop and other
+  agents. Model providers, the vector store, loaders and chunkers are plugins
+  you can swap.
 
-## Requirements
+## Quick start
 
-| For | You need |
-| --- | --- |
-| Running the full stack | Docker with Compose v2 (`docker compose`, not the standalone `docker-compose`) |
-| Chat + embeddings, fully offline | [Ollama](https://ollama.com) installed on the host — or run it in the `ollama` Compose profile instead |
-| Cloud models (optional) | An API key for OpenAI, Gemini and/or Anthropic |
-| Frontend development outside Docker | Node.js 22.12+ |
-| Python service development outside Docker | Python 3.12+ |
+You need [Docker](https://docs.docker.com/get-docker/) with Compose v2 and
+[Ollama](https://ollama.com/download) running on the host.
 
-## Quick Start
-
-1. **Start Ollama** (offline models):
-
-   ```bash
-   ollama serve
-   ollama pull llama3.1
-   ollama pull nomic-embed-text
-   ```
-
-   Or run Ollama in Docker instead: `docker compose --profile ollama up` and set `OLLAMA_HOST=http://ollama:11434` in `.env` (CPU-only on macOS).
-
-2. **Configure** — copy `.env.example` to `.env`, then set `AUTH_SECRET`:
-
-   ```bash
-   cp .env.example .env
-   echo "AUTH_SECRET=$(openssl rand -base64 32)" >> .env
-   ```
-
-   `AUTH_SECRET` signs the web app's session cookies and has no default on purpose — the stack refuses to start without it. Cloud keys are optional.
-
-   One setting to check: `.env.example` sets `OLLAMA_HOST=http://localhost:11434`, which is right when you run the Python services directly on your machine but wrong inside Docker, where `localhost` is the container itself. For the Docker stack with Ollama on the host, remove that line from `.env`; Compose then uses `http://host.docker.internal:11434`.
-
-3. **Run the stack**:
-
-   ```bash
-   docker compose up --build
-   ```
-
-   Working on the Python services? Layer the dev overlay on top for hot reload (source bind-mounted, uvicorn `--reload`):
-
-   ```bash
-   docker compose -f docker-compose.yml -f compose.dev.yml up --build
-   ```
-
-4. Open **http://localhost:8080** — create an account, and you're in.
-
-## Where the Project Is
-
-The next major version turns the kit into a sovereign, local-first private AI workspace: every swappable capability behind an interface with a plugin registry, offline by default, and documents, identity and rate limits per user. It is **in development, not released** — `main` carries the finished phases, and nothing is tagged as v2 yet. The plan of record is **[docs/v2/PLAN.md](docs/v2/PLAN.md)**; progress is tracked in [issue #20](https://github.com/sameeralam3127/llm-dev-kit/issues/20).
-
-| | Phase | |
-| --- | --- | --- |
-| ✅ | **1 — Plan** | [docs/v2/PLAN.md](docs/v2/PLAN.md) |
-| ✅ | **2 — Core refactor** | `ldk_core` interfaces + plugin registry; providers, stores, loaders, chunkers and MCP tools are plugins; CI gates every image |
-| | 3 — Sovereign mode · 4 — Auth · 5 — Per-user ingestion on pgvector | |
-| | 6 — Limits, observability, audit · 7 — Admin · 8 — Plugin marketplace · 9 — Distribution | |
-
-Until Phase 4, the Python APIs (including `/v1` and PDF ingest) have no authentication and anyone who can reach the app can register an account. That is why the gateway listens on `127.0.0.1` by default: only this machine can reach it. Setting `GATEWAY_BIND=0.0.0.0` in `.env` opens all of it to your network; if you do, also set `ALLOW_REGISTRATION=false`.
-
-## Services
-
-| Service | Port (internal) | Purpose |
-| --- | ---: | --- |
-| `nginx` | `8080` (published on `127.0.0.1`) | Gateway + load balancer, the only published port; `GATEWAY_BIND` widens it |
-| `web` | 3000 | Next.js chat app — accounts, history, folders, sharing |
-| `llm-service` | 8010 | Model routing over the LLM and embedder plugins: Ollama (offline) + cloud via LiteLLM |
-| `rag-service` ×2 | 8020 | RAG chat (+streaming), `/v1` OpenAI-compatible API, PDF ingest, cache |
-| `mcp` | stdio | MCP server for every tool plugin (profile `mcp`) |
-| `redis` / `chroma` | 6379 / 8000 | Infrastructure; not published, reachable only on the Compose network |
-
-Each of the project's own services builds off its own Dockerfile stage with only the dependencies it needs, and every container carries a CPU/memory limit sized to its actual workload. The Python and web images run as non-root users; the gateway uses the stock nginx image. See [ARCHITECTURE.md](ARCHITECTURE.md#docker-build-strategy) for the full breakdown.
-
-Each one is also published as its own image to GitHub Container Registry on every push to `main` ([.github/workflows/publish.yml](.github/workflows/publish.yml)), tagged `latest` and by commit SHA — but only after CI (lint, typecheck, tests, and a build-and-start check of the Python and web images) passes:
+**1. Pull the models** (once, about 5 GB):
 
 ```bash
-docker pull ghcr.io/sameeralam3127/llm-dev-kit-gateway:latest
-docker pull ghcr.io/sameeralam3127/llm-dev-kit-web:latest
-docker pull ghcr.io/sameeralam3127/llm-dev-kit-llm-service:latest
-docker pull ghcr.io/sameeralam3127/llm-dev-kit-rag-service:latest
-docker pull ghcr.io/sameeralam3127/llm-dev-kit-mcp-service:latest
+ollama pull llama3.1
+ollama pull nomic-embed-text
 ```
 
-From the first release onward, pushing a version tag such as `v2.0.0` also publishes version-tagged images: `2.0.0`, `2.0` and `2` (for example `ghcr.io/sameeralam3127/llm-dev-kit-web:2.0`). No release has been tagged yet, so for now only `latest` and commit-SHA tags exist.
-
-`docker-compose.yml` still builds locally by default — pulling from GHCR is for running the stack without a local build (or in another environment) rather than a replacement for `docker compose up`.
-
-## Chat UI
-
-The frontend is a **Next.js** application ([web/](web/)) running as its own container, reverse-proxied by nginx at `/`. See [web/README.md](web/README.md) for its architecture and environment variables.
-
-- **Accounts** — email/password sign-in (optional GitHub OAuth), so history is per-user rather than per-browser.
-- **Streaming responses** — tokens render as they arrive over SSE, with a stop button; a partial answer is persisted even if you stop it or the model host dies mid-sentence. Only the growing part of the answer re-renders each frame, so long answers stay smooth.
-- **Multiple sessions and folders** — persistent history, colour-coded folders, pinning, and chats grouped by when you last used them (Pinned, Today, Yesterday, Previous 7 / 30 days, Older). The sidebar collapses to an icon rail.
-- **Command palette** — <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> searches every chat, titles and message bodies, and runs actions (new chat, new folder, theme, sidebar) without leaving the keyboard. Also <kbd>⇧⌘O</kbd> for a new chat and <kbd>⌘B</kbd> to collapse the sidebar.
-- **Edit and regenerate** — editing a message rewinds the conversation to that turn and regenerates; replaced answers are archived and reachable through a `‹ 2/3 ›` control rather than lost.
-- **Markdown and syntax highlighting** — GitHub-flavoured Markdown, per-block code copy and soft-wrap toggle. The highlighter loads only when an answer contains code, and a code block is coloured once it closes.
-- **Sharing** — publish any conversation as a read-only link, revocable at any time.
-- **Enterprise theme**: neutral surfaces and one blue accent, in light, dark and system modes (system by default, remembered per browser). Text and the accent meet WCAG AA contrast in both themes. Motion is minimal and CSS-only, and it stops when your system asks for reduced motion.
-
-Answers come from `rag-service`, grounded in your indexed PDFs — the retrieval pipeline is unchanged. The model picker is fed by `rag-service`'s `/v1/models`, which lists local Ollama models plus whichever cloud models are configured (see [Configuration & Cloud LLMs](#configuration--cloud-llms)).
-
-> **Note:** three things from the project's earlier static UI didn't carry over as-is: in-chat PDF upload (ingestion still works via `POST /api/rag/ingest/pdf`), the cache badge and one-click cache clear, and pasting a cloud API key from the browser — that's now a server-side setting instead. Upload in the UI returns with per-user ingestion ([#15](https://github.com/sameeralam3127/llm-dev-kit/issues/15)). [docs/usage.md](docs/usage.md) walks through adding documents and chatting today.
-
-For frontend development with hot reload:
+**2. Configure and start the stack:**
 
 ```bash
-cd web
-npm install
-cp .env.example .env          # set AUTH_SECRET, point LLM_BASE_URL at the stack
-npm run db:push && npm run db:seed
-npm run dev                   # http://localhost:3000
+git clone https://github.com/sameeralam3127/llm-dev-kit.git
+cd llm-dev-kit
+
+# Inside Docker, Ollama is reached through host.docker.internal, so drop the
+# localhost setting meant for running the services outside Docker.
+grep -v '^OLLAMA_HOST=' .env.example > .env
+echo "AUTH_SECRET=$(openssl rand -base64 32)" >> .env
+
+docker compose up --build
 ```
 
-## Configuration & Cloud LLMs
+**3. Open <http://localhost:8080> and create an account.** The first account
+becomes the admin.
 
-The stack is fully offline by default. Cloud calls go through the **LiteLLM** plugin; a provider LiteLLM doesn't cover can be added as its own plugin (see [Plugins](#plugins)). To enable cloud models, either:
-
-- **In `.env`** (server-wide): set `OPENAI_API_KEY`, `GEMINI_API_KEY` and/or `ANTHROPIC_API_KEY`. Models are addressed as `openai/gpt-4o`, `gemini/gemini-2.5-flash`, `anthropic/claude-sonnet-5`, etc. These then appear in the web app's model picker.
-- **Per request** (direct API calls): pass `api_key` in the request body to `/api/rag/chat`, or as a `Bearer` token to `/v1/chat/completions` — never stored server-side. This is an API-level feature; the web app itself has no per-user key field, so it uses the server-wide keys above.
-
-`OPENAI_BASE_URL` may point at any OpenAI-compatible endpoint (Groq, Together, vLLM, LM Studio, ...). Embeddings always stay local so your vector store keeps one consistent embedding space; the embedding model is fixed per deployment (`DEFAULT_EMBEDDING_MODEL`, plus `EMBEDDING_DIMENSION` for models llm-service doesn't already know).
-
-Logging is set with `LOG_LEVEL` and `LOG_FORMAT` (`json`, the default, or `console` for local reading).
-
-## API Reference
-
-All examples go through the load balancer at `:8080`.
+**4. Add a document and ask about it.** Create an API key from the account menu
+(bottom left) → **API keys**, then:
 
 ```bash
-# health
-curl http://localhost:8080/api/llm/health
-curl http://localhost:8080/api/rag/health
-
-# all available models (local + configured cloud)
-curl http://localhost:8080/api/llm/models
-
-# RAG chat — offline model
-curl -X POST http://localhost:8080/api/rag/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Summarize my knowledge base"}'
-
-# RAG chat — streaming (NDJSON: meta, deltas, done)
-curl -N -X POST http://localhost:8080/api/rag/chat/stream \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Summarize my knowledge base"}'
-
-# RAG chat — cloud model with your own key
-curl -X POST http://localhost:8080/api/rag/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"hello","model":"gemini/gemini-2.5-flash","api_key":"AIza..."}'
-
-# OpenAI-compatible API (works with any OpenAI SDK)
-curl -X POST http://localhost:8080/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{"model":"llama3.1","messages":[{"role":"user","content":"Summarize my knowledge base"}]}'
-
-# ingest a PDF into the RAG index
-curl -X POST http://localhost:8080/api/rag/ingest/pdf -F "file=@mydoc.pdf"
+KEY=sk-ldk-...   # the key you just created
+curl -H "Authorization: Bearer $KEY" -F "file=@handbook.pdf" \
+  http://localhost:8080/api/rag/ingest/pdf
+# {"chunks":12}
 ```
 
-### Errors and request ids
+Ask a question about the document in the chat. The answer comes from the
+handbook, generated by llama3.1 on your machine.
 
-Every error from the Python services and the web app has the same shape, with the HTTP status following from `code`:
+> [!TIP]
+> Everything listens on `127.0.0.1:8080` only, so nothing is exposed until you
+> decide. [docs/usage.md](docs/usage.md) covers inviting a team on your
+> network, and [docs/setup.md](docs/setup.md) walks through every step in more
+> detail.
 
-```json
-{"error": {"code": "invalid_request", "message": "Request validation failed",
-           "details": [{"path": "body.texts",
-                        "message": "List should have at least 1 item after validation, not 0"}]}}
+## A quick tour
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/images/home.jpg" alt="The start screen with suggested prompts">
+      <p align="center"><b>Start anywhere.</b> Suggested prompts, or just type.</p>
+    </td>
+    <td width="50%">
+      <img src="docs/images/command-palette.jpg" alt="The command palette searching every chat for the word ship">
+      <p align="center"><b>Find anything.</b> <kbd>⌘K</kbd> searches every chat, titles and messages.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/images/api-keys.jpg" alt="The API keys dialog listing two keys by name and prefix">
+      <p align="center"><b>Keys for your tools.</b> Personal API keys, shown once and revocable.</p>
+    </td>
+    <td width="50%">
+      <img src="docs/images/sign-in.jpg" alt="The sign-in page with a single sign-on button above the email and password form">
+      <p align="center"><b>Sign in your way.</b> Email and password, GitHub, or your Keycloak.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/images/admin-users.jpg" alt="The admin users table with sign-in methods, roles, chats and API keys per person">
+      <p align="center"><b>Manage people.</b> Roles per user, with at least one admin always kept.</p>
+    </td>
+    <td width="50%">
+      <img src="docs/images/admin-health.jpg" alt="The admin health page with a status card for each service">
+      <p align="center"><b>See the system.</b> Health of every service, refreshed every 30 seconds.</p>
+    </td>
+  </tr>
+</table>
+
+## Features
+
+### Chat
+
+- **Streaming answers** with a stop button. A partial answer is saved even if
+  you stop it or the model host fails mid-sentence.
+- **Edit and regenerate.** Editing a message rewinds the conversation to that
+  point. Earlier answers stay one click away through `‹ 2/3 ›`.
+- **Organised history.** Chats grouped by date, folders, pinning, and a sidebar
+  that collapses to an icon rail.
+- **Keyboard first.** <kbd>⌘K</kbd> palette, <kbd>⇧⌘O</kbd> new chat,
+  <kbd>⌘B</kbd> sidebar.
+- **Readable output.** GitHub-flavoured Markdown, syntax highlighting loaded on
+  demand, per-block copy.
+- **Sharing.** Publish a chat as a read-only link and revoke it at any time.
+- **Accessible.** Light, dark and system themes with WCAG AA contrast, full
+  keyboard support, and motion that stops when your system asks for reduced
+  motion.
+
+### Knowledge
+
+- **Retrieval-augmented answers** over your PDFs: text is chunked, embedded
+  locally with `nomic-embed-text` and stored in ChromaDB.
+- **Any model.** Local Ollama models by default. Add a key in `.env` and
+  `openai/…`, `gemini/…` and `anthropic/…` models appear in the model picker,
+  through [LiteLLM](https://github.com/BerriAI/litellm).
+- **Cached answers.** Repeated questions to `/api/rag/chat` come back from Redis
+  instantly.
+
+### Identity and access
+
+- **Every API call is authenticated.** The browser uses its session; scripts
+  and agents use personal API keys (`sk-ldk-…`, stored hashed, shown once).
+- **Roles:** `viewer` chats, `user` also adds documents, `admin` also manages
+  people and clears the index.
+- **Single sign-on:** `docker compose --profile sso up` adds Keycloak with a
+  ready-made realm, served at `/sso`.
+- **No account takeover by email.** An external sign-in whose email already has
+  an account is refused, not silently linked.
+- **Short-lived credentials.** The services verify 5-minute signed tokens
+  themselves, so the gateway is never trusted blindly.
+
+### Operations
+
+- **One command, one port.** `docker compose up` starts everything behind an
+  Nginx gateway on `127.0.0.1:8080`; no other port is published.
+- **Scales out.** rag-service runs two replicas by default; add more with
+  `--scale` and the gateway picks them up without a restart.
+- **Observable.** Structured JSON logs, one request id that follows a call
+  across every service, and one error format everywhere.
+- **Gated releases.** CI lints, type-checks, tests and starts every image before
+  anything is published.
+
+## Use it from code
+
+The `/v1` API speaks the OpenAI protocol, so existing clients work by changing
+two settings. Every answer is grounded in your documents.
+
+**Python (OpenAI SDK)**
+
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:8080/v1", api_key="sk-ldk-...")
+reply = client.chat.completions.create(
+    model="llama3.1",
+    messages=[{"role": "user", "content": "When does BLUEFIN-42 ship?"}],
+)
+print(reply.choices[0].message.content)
 ```
 
-Codes: `invalid_request` (400), `unauthorized` (401), `forbidden` (403), `not_found` (404), `conflict` (409), `rate_limited` (429), `internal` (500), `upstream_error` (502), `upstream_unavailable` (503), `timeout` (504). Every response from the Python services (`/v1`, `/api/rag`, `/api/llm`) carries an `X-Request-ID` header — send your own to correlate a call with their logs, where each line records it as `correlation_id`.
-
-### Using it from LangChain
-
-The `/v1` endpoint is OpenAI-compatible, so LangChain can use the whole RAG pipeline as a chat model — no extra glue code:
+**LangChain**
 
 ```python
 from langchain_openai import ChatOpenAI
 
-llm = ChatOpenAI(
-    base_url="http://localhost:8080/v1",
-    api_key="sk-local-rag",   # placeholder = stay offline; real key = cloud models
-    model="llama3.1",         # or "gemini/gemini-2.5-flash", "openai/gpt-4o", ...
-)
-print(llm.invoke("Summarize my knowledge base").content)
+llm = ChatOpenAI(base_url="http://localhost:8080/v1", api_key="sk-ldk-...", model="llama3.1")
+print(llm.invoke("Summarise the onboarding handbook").content)
 ```
 
-## MCP Usage
-
-`mcp.json` is included for MCP clients. Tools: `list_models`, `ask_llm_dev_kit`.
+**curl, with streaming**
 
 ```bash
-docker compose --profile mcp run --rm mcp
+curl -N http://localhost:8080/v1/chat/completions \
+  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -d '{"model":"llama3.1","stream":true,"messages":[{"role":"user","content":"Hello"}]}'
 ```
 
-## Scaling
+**MCP (Claude Desktop and other agents).** Add [`mcp.json`](mcp.json) to your
+client with `LDK_API_KEY` set to an API key. It provides `ask_llm_dev_kit` and
+`list_models`.
 
-`rag-service` runs 2 replicas by default (`deploy.replicas` in `docker-compose.yml`); Nginx round-robins across them. Scale at runtime:
+<details>
+<summary><b>All endpoints</b></summary>
 
-```bash
-docker compose up -d --scale rag-service=4
-docker compose restart nginx   # re-resolve upstream IPs
+All paths go through the gateway at `http://localhost:8080`. Everything except
+the health checks needs `Authorization: Bearer <api key>`.
+
+| Method and path | Role | What it does |
+| --- | --- | --- |
+| `GET /api/rag/health`, `GET /api/llm/health` | none | Liveness; llm-service also reports whether Ollama is ready |
+| `GET /v1/models` | viewer | Models, in OpenAI format |
+| `POST /v1/chat/completions` | viewer | Grounded chat, streaming or not, in OpenAI format |
+| `POST /api/rag/chat` | viewer | Grounded chat with its sources; `"api_key"` in the body uses your own cloud key for that call |
+| `POST /api/rag/chat/stream` | viewer | The same, streamed as NDJSON (`meta`, `delta`, `done`) |
+| `GET /api/llm/models` | viewer | Local and configured cloud models |
+| `POST /api/rag/ingest/pdf` | user | Add a PDF (multipart field `file`, up to 64 MB) |
+| `GET /api/rag/documents/stats`, `POST /api/rag/documents/clear` | admin | Count or clear the index |
+| `GET /api/rag/cache/stats`, `POST /api/rag/cache/clear` | admin | Inspect or clear cached answers |
+
+Errors share one shape, `{"error": {"code": "...", "message": "..."}}`, with
+the status implied by the code: `invalid_request` 400, `unauthorized` 401,
+`forbidden` 403, `not_found` 404, `conflict` 409, `rate_limited` 429,
+`internal` 500, `upstream_error` 502, `upstream_unavailable` 503, `timeout`
+504. Every response carries an `X-Request-ID`; send your own to find a call in
+the logs.
+
+</details>
+
+## How it works
+
+```mermaid
+flowchart LR
+  B[Browser] --> GW
+  S[Scripts and SDKs] -->|API key| GW
+  A[MCP agents] --> MCP[mcp-service]
+  GW[Nginx gateway<br/>127.0.0.1:8080] --> WEB[web<br/>Next.js app and identity]
+  GW -->|/v1, /api/rag| RAG[rag-service ×2<br/>retrieval and chat]
+  GW -->|/api/llm| LLM[llm-service<br/>model routing]
+  WEB -->|user's token| RAG
+  MCP -->|API key| RAG
+  RAG -->|caller's token| LLM
+  RAG -.->|verify tokens| WEB
+  LLM -.->|verify tokens| WEB
+  RAG --> CH[(ChromaDB)]
+  RAG --> RD[(Redis)]
+  LLM --> OL[Ollama on the host]
+  LLM -.->|optional| CL[Cloud models]
 ```
 
-## Plugins
+| Service | What it does |
+| --- | --- |
+| `nginx` | The gateway and the only published port. Routes to the app and APIs and balances across rag-service replicas. |
+| `web` | The Next.js chat app. It is also the identity service: it signs short-lived tokens and publishes their keys at `/.well-known/jwks.json`. |
+| `rag-service` | Retrieval, grounded chat, the `/v1` API, PDF ingestion and the answer cache. Two replicas by default. |
+| `llm-service` | One interface to every model: Ollama locally, cloud providers through LiteLLM. |
+| `mcp` | An MCP server over stdio for agents (profile `mcp`). |
+| `redis`, `chroma` | Cache and vector store, reachable only inside the Compose network. |
+| `keycloak` | Optional single sign-on (profile `sso`). |
 
-A plugin is a small Python distribution: an implementation of one interface from `ldk_core.ports`, a manifest (`llm-dev-kit-plugin.json`: name, version, kind, declared permissions and a JSON Schema for its configuration), and an entry point the services discover at startup:
+The Python services never trust the gateway: each verifies the caller's token
+itself. [ARCHITECTURE.md](ARCHITECTURE.md) has the request flows and the Docker
+build strategy.
+
+## Configuration
+
+Settings live in `.env`; [`.env.example`](.env.example) documents every one.
+The ones you are most likely to change:
+
+| Setting | Default | What it is for |
+| --- | --- | --- |
+| `AUTH_SECRET` | none, required | Signs sessions and encrypts the token signing keys. `openssl rand -base64 32` |
+| `WEB_PUBLIC_URL` | `http://localhost:8080` | The address people type into their browser |
+| `GATEWAY_BIND` | `127.0.0.1` | Set `0.0.0.0` to let other machines on your network in |
+| `ALLOW_REGISTRATION` | `true` | Set `false` once your team has signed up |
+| `DEFAULT_CHAT_MODEL` | `llama3.1` | Any model you have pulled in Ollama |
+| `OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY` | unset | Enable those providers' models for everyone |
+| `KEYCLOAK_ADMIN_PASSWORD`, `AUTH_KEYCLOAK_*` | unset | Single sign-on; see the SSO section of `.env.example` |
+| `ALLOW_LEGACY_ANONYMOUS` | `false` | Temporary escape hatch for clients without keys; see [MIGRATION.md](docs/v2/MIGRATION.md) |
+
+Want Ollama in Docker instead of on the host? Run
+`docker compose --profile ollama up` and set
+`OLLAMA_HOST=http://ollama:11434`. It runs on CPU only on macOS.
+
+## Extend it with plugins
+
+Model providers, embedders, the vector store, document loaders, chunkers,
+authentication and MCP tools are plugins behind typed interfaces in
+`ldk_core.ports`. A plugin is a small Python package with a manifest and an
+entry point:
 
 ```toml
 [project.entry-points."llm_dev_kit.plugins"]
-"llm.my-host" = "my_plugin:plugin"     # <kind>.<name>, matching the manifest
+"llm.my-host" = "my_plugin:plugin"     # <kind>.<name>
 ```
 
-Its tests subclass the contract suite for that interface — the same suite the first-party plugins in [services/plugins/](services/plugins/) pass. `ldk-core` is not published to PyPI; install it from this checkout with `pip install -e "services/core[testing]"`.
+Each interface ships a contract test suite. Your plugin passes the same tests
+as the built-in ones in [services/plugins/](services/plugins/):
 
 ```python
-import pytest
 from ldk_core.testing.contracts import LLMProviderContract
 
 class TestMyHost(LLMProviderContract):
     @pytest.fixture
-    def provider(self): return MyHostProvider(...)
+    def provider(self):
+        return MyHostProvider(...)
 
     @pytest.fixture
-    def model(self): return "my-model"
+    def model(self):
+        return "my-model"
 ```
 
-Plugins run in-process with the service's permissions; the manifest's `permissions` are disclosure, not a sandbox. Signed installs and an admin approval flow are planned for Phase 8.
+Plugins run in-process with the service's permissions. Their manifests declare
+what they do, but that is disclosure, not a sandbox.
 
-## Project Layout
+## Development
 
-```
-web/                       Next.js chat app — auth, history, folders, sharing
-  src/lib/llm/             ChatProvider seam — the web app's own model adapter
-  src/server/services/     all DB mutation + ownership checks live here
-  src/app/api/             routes: parse → delegate → serialise, nothing more
-  src/components/markdown/ block-by-block Markdown, on-demand syntax highlighting
-  README.md                web-specific architecture and env vars
-nginx/nginx.conf           gateway: web + /api/* + /v1 routing, LB across replicas
-services/                  each service is an installable package: src/<name>/ + pyproject.toml + requirements.txt
-  core/                     ldk_core: the ports, plugin registry, errors, settings, logging
-  plugins/                  first-party plugins (ollama, litellm, chroma, loader_pdf, chunker_fixed, tools)
-  llm_service/              model router over the LLM and embedder plugins
-  rag_service/              RAG chat (+streaming), /v1 API, PDF ingest, Redis cache
-  mcp_service/              MCP server exposing every Tool plugin
-  devkit_common/            shared config, models, FastAPI service setup
-docs/v2/PLAN.md            the v2 plan: architecture, interfaces, phases
-docs/setup.md              step-by-step setup and troubleshooting
-tests/                     Python unit, contract and service tests (no containers needed)
-.github/workflows/         ci.yml (every push and PR) and publish.yml (main, after CI)
-```
-
-The three boundaries worth knowing before you change anything: token generation goes through `ChatProvider`, database writes and ownership checks live only in `web/src/server/services/`, and route handlers parse, delegate and serialise — they never query the database directly. On the Python side the same rule holds: services get implementations from the plugin registry and never import a plugin directly (`tests/test_architecture.py` enforces it).
-
-## Local Development (outside Docker)
+**Python services**
 
 ```bash
 python3.12 -m venv .venv && source .venv/bin/activate
-pip install -r requirements-dev.txt     # also installs ldk_core and every plugin, editable
-pip install -e services/devkit_common -e services/llm_service -e services/rag_service
-uvicorn llm_service.main:app --reload --port 8010
-uvicorn rag_service.main:app --reload --port 8020
-```
-
-Use `.env.example` as the starting point for `.env` (set `LLM_SERVICE_URL=http://localhost:8010`, and `LOG_FORMAT=console` for readable logs). Plugins are found through their installed entry points, so a new plugin needs `pip install -e` before a service sees it.
-
-## Testing
-
-```bash
-# python services — the same checks CI runs (.github/workflows/ci.yml)
-pip install -r requirements-dev.txt
+pip install -r requirements-dev.txt       # ldk_core and every plugin, editable
 ruff check services tests && ruff format --check services tests
 mypy
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest
-
-# the Chroma plugin's contract suite needs a real Chroma (CI runs one);
-# without this it is skipped
-docker run -d -p 127.0.0.1:8000:8000 chromadb/chroma:1.5.9
-LDK_TEST_CHROMA_HOST=localhost python3 -m pytest tests/plugins/test_chroma_plugin.py
-
-# web app — the gate before any change lands
-cd web && npm run typecheck && npm run lint && npm test && npm run build
-npm run bench    # streaming render cost, before/after (not part of CI)
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest
 ```
 
-CI runs all of this on every push and pull request (`tests/test_compose.py` included, which keeps every port but the gateway's unpublished), plus a job that builds the Python and web images, starts each one and waits for it to answer.
+**Web app** (Node 22.12+)
+
+```bash
+cd web && npm install
+cp .env.example .env                      # then set AUTH_SECRET
+npm run typecheck && npm run lint && npm test && npm run build
+npm run dev                               # http://localhost:3000
+```
+
+**Hot reload in Docker:** `docker compose -f docker-compose.yml -f compose.dev.yml up --build`.
+
+CI runs all of the above on every push and pull request, then builds and starts
+each image. Pull request titles follow
+[Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`,
+`docs:` …).
+
+<details>
+<summary><b>Project layout</b></summary>
+
+```
+web/                     Next.js app: chat, accounts, admin, identity service
+  src/server/identity/     roles, signing keys, access tokens, API keys
+  src/server/services/     every database write and ownership check
+services/
+  core/                    ldk_core: interfaces, plugin registry, auth, errors, logging
+  plugins/                 ollama, litellm, chroma, loader_pdf, chunker_fixed, tools, auth
+  llm_service/             model routing
+  rag_service/             retrieval, grounded chat, /v1, ingestion, cache
+  mcp_service/             MCP server
+nginx/nginx.conf         the gateway
+deploy/keycloak/         the realm the sso profile imports
+docs/                    setup, usage, the v2 plan and migration notes
+tests/                   Python unit, contract and service tests
+```
+
+</details>
+
+## Project status
+
+LLM Dev Kit is becoming a sovereign, local-first AI workspace. **v2 is in active
+development and not yet released.** The plan of record is
+[docs/v2/PLAN.md](docs/v2/PLAN.md), tracked in
+[issue #20](https://github.com/sameeralam3127/llm-dev-kit/issues/20).
+
+| | Phase | |
+| :---: | --- | --- |
+| ✅ | Plan | Architecture, interfaces and phases |
+| ✅ | Core refactor | Interfaces, plugin registry, contract tests, CI gate |
+| ✅ | Authentication | Tokens, API keys, roles, SSO. Breaking for `/v1`: see [MIGRATION.md](docs/v2/MIGRATION.md) |
+| 🚧 | Admin | Users, roles and health are done; usage, audit and plugin settings follow |
+| ⏳ | Sovereign mode | No outbound traffic by default, backup and wipe |
+| ⏳ | Per-user documents | Private collections on pgvector, upload in the app, citations |
+| ⏳ | Limits and observability | Rate limits, tracing, dashboards, audit log |
+| ⏳ | Plugin marketplace | Signed plugins installed without rebuilding |
+| ⏳ | Distribution | Multi-arch images, one-file install |
+
+**Good to know today:** documents are uploaded through the API and shared by
+every user until per-user collections arrive. Models whose names end in
+`-cloud` run on ollama.com, not on your machine.
 
 ## Troubleshooting
 
-| Symptom | Cause / fix |
+| Symptom | Fix |
 | --- | --- |
-| `docker compose up` fails immediately with `"required variable AUTH_SECRET is missing"` | Expected — the web app's session key has no default. Run `echo "AUTH_SECRET=$(openssl rand -base64 32)" >> .env`. |
-| Nothing loads at `localhost:8080` | Run `docker compose ps`; if services show `Exited`, the stack stopped (Docker Desktop restart, host sleep, or a manual `down`/`stop`) and needs `docker compose up -d`. |
-| Signed in, but every message errors | The web app reaches `rag-service` directly at `http://rag-service:8020/v1`. Check `docker compose logs -f web rag-service`; a `503` here means the RAG service is not healthy yet. |
-| "no local models found" in the model picker | Check Ollama is running (`ollama list`) and reachable from Docker. Compose defaults to `http://host.docker.internal:11434`, but an `OLLAMA_HOST=http://localhost:11434` line copied from `.env.example` overrides that and points the container at itself: remove it. |
-| The app can't be reached from another machine | Expected: the gateway binds to `127.0.0.1`. Set `GATEWAY_BIND=0.0.0.0` in `.env` (and `ALLOW_REGISTRATION=false`), then `docker compose up -d`. |
-| Cloud model errors | `401` means no/invalid API key: set it in `.env` or pass `api_key` per request. |
-| PDF retrieval returns nothing | The PDF must contain selectable text, not scanned images. |
-| A Python service exits at startup with `Invalid environment configuration:` | The message lists every bad variable; fix those in `.env` (or the compose environment). |
-| llm-service exits with `Unknown embedding dimension for Ollama model …` | `DEFAULT_EMBEDDING_MODEL` is a model llm-service doesn't know; set `EMBEDDING_DIMENSION` to its vector length. |
-| Logs at startup show `plugin skipped` | An installed plugin failed to load; the line names the entry point and the reason. The service keeps running without it. |
+| `required variable AUTH_SECRET is missing` | Add one: `echo "AUTH_SECRET=$(openssl rand -base64 32)" >> .env` |
+| "No local models" in the model picker | Check `ollama list`, and that `.env` has no `OLLAMA_HOST=http://localhost:11434` line |
+| `401` from the API | Send `Authorization: Bearer sk-ldk-…`; a revoked key stops working within a minute |
+| `403` from the API | Your role cannot do that: only `user` and `admin` add documents |
+| Nothing at `localhost:8080` | `docker compose ps`; if services show `Exited`, run `docker compose up -d` |
 
-Full walkthrough and more failure modes: [docs/setup.md](docs/setup.md).
+More in [docs/setup.md](docs/setup.md#troubleshooting).
 
-## Learn More
+## Documentation
 
-| Document | Covers |
+| Guide | Read it to |
 | --- | --- |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System diagrams, request flows, and the Docker build strategy |
-| [docs/v2/PLAN.md](docs/v2/PLAN.md) | The v2 plan: target architecture, interfaces, migration and phases |
-| [docs/setup.md](docs/setup.md) | Step-by-step setup, PDF ingestion, and troubleshooting |
-| [docs/usage.md](docs/usage.md) | Adding documents, chatting, and letting other people in |
-| [web/README.md](web/README.md) | Frontend architecture, environment variables, and feature detail |
+| [docs/setup.md](docs/setup.md) | Install step by step and fix common problems |
+| [docs/usage.md](docs/usage.md) | Add documents, chat, and bring in your team |
+| [docs/v2/MIGRATION.md](docs/v2/MIGRATION.md) | Upgrade clients to API keys |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Understand request flows and the Docker build |
+| [docs/v2/PLAN.md](docs/v2/PLAN.md) | See where the project is going |
+| [web/README.md](web/README.md) | Work on the web app |
 
 ## License
 
-[MIT](LICENSE) © 2025 Sameer Alam.
+[MIT](LICENSE) © 2025 Sameer Alam

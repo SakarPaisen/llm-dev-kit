@@ -2,13 +2,15 @@ import { parseSSE } from '@/lib/llm/sse'
 import {
   type ChatProvider,
   type CompletionRequest,
+  type ListModelsOptions,
   type ProviderModel,
   ProviderError,
 } from '@/lib/llm/types'
 
 interface OpenAICompatibleConfig {
   baseUrl: string
-  apiKey: string
+  /** A static key for third-party backends; a per-call `authorization` wins. */
+  apiKey?: string
   timeoutMs: number
 }
 
@@ -34,8 +36,12 @@ export class OpenAICompatibleProvider implements ChatProvider {
 
   constructor(private readonly config: OpenAICompatibleConfig) {}
 
-  async listModels(signal?: AbortSignal): Promise<ProviderModel[]> {
-    const response = await this.request('/models', { method: 'GET', signal })
+  async listModels(options: ListModelsOptions = {}): Promise<ProviderModel[]> {
+    const response = await this.request('/models', {
+      method: 'GET',
+      ...(options.signal ? { signal: options.signal } : {}),
+      ...(options.authorization ? { authorization: options.authorization } : {}),
+    })
     const payload = (await response.json()) as ModelListResponse
 
     return (payload.data ?? [])
@@ -55,7 +61,8 @@ export class OpenAICompatibleProvider implements ChatProvider {
   async *streamCompletion(request: CompletionRequest): AsyncIterable<string> {
     const response = await this.request('/chat/completions', {
       method: 'POST',
-      signal: request.signal,
+      ...(request.signal ? { signal: request.signal } : {}),
+      ...(request.authorization ? { authorization: request.authorization } : {}),
       body: JSON.stringify({
         model: request.model,
         messages: request.messages.map((message) => ({
@@ -97,8 +104,9 @@ export class OpenAICompatibleProvider implements ChatProvider {
 
   private async request(
     path: string,
-    init: { method: string; body?: string; signal?: AbortSignal },
+    init: { method: string; body?: string; signal?: AbortSignal; authorization?: string },
   ): Promise<Response> {
+    const credential = init.authorization ?? this.config.apiKey
     const timeout = AbortSignal.timeout(this.config.timeoutMs)
     const signal = init.signal
       ? AbortSignal.any([init.signal, timeout])
@@ -111,7 +119,7 @@ export class OpenAICompatibleProvider implements ChatProvider {
         signal,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.config.apiKey}`,
+          ...(credential ? { Authorization: `Bearer ${credential}` } : {}),
         },
         ...(init.body === undefined ? {} : { body: init.body }),
         cache: 'no-store',

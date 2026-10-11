@@ -16,7 +16,7 @@ export default function RegisterPage() {
     redirect(ROUTES.login)
   }
 
-  const { github } = oauthProvidersEnabled()
+  const { github, sso } = oauthProvidersEnabled()
 
   return (
     <AuthCard
@@ -34,7 +34,7 @@ export default function RegisterPage() {
         </>
       }
     >
-      <OAuthButtons github={github} callbackUrl={ROUTES.home} />
+      <OAuthButtons github={github} sso={sso} callbackUrl={ROUTES.home} />
       <RegisterForm callbackUrl={ROUTES.home} />
     </AuthCard>
   )

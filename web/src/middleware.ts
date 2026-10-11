@@ -6,8 +6,19 @@ import { ROUTES } from '@/lib/constants'
 
 const { auth } = NextAuth(authConfig)
 
-/** Reachable without a session. Everything else requires one. */
-const PUBLIC_PREFIXES = ['/login', '/register', '/share', '/api/auth']
+/**
+ * Reachable without a session. Everything else requires one. The identity
+ * endpoints authenticate their own callers: the JWKS is public by design and
+ * the token exchange takes an API key, not a session.
+ */
+const PUBLIC_PREFIXES = [
+  '/login',
+  '/register',
+  '/share',
+  '/api/auth',
+  '/.well-known',
+  '/api/identity',
+]
 
 export default auth((request) => {
   const { pathname, search } = request.nextUrl

@@ -5,6 +5,7 @@ from typing import Any
 import httpx
 
 from devkit_common.http import error_detail
+from ldk_core.auth import auth_headers
 from ldk_core.errors import ErrorCode, ServiceError, code_for_status
 from ldk_core.observability import outgoing_headers
 
@@ -27,7 +28,7 @@ class LLMServiceClient:
             base_url=base_url.rstrip("/"),
             timeout=timeout,
             transport=transport,
-            event_hooks={"request": [_forward_request_id]},
+            event_hooks={"request": [_forward_context]},
         )
 
     async def models(self) -> list[str]:
@@ -124,9 +125,13 @@ class LLMServiceClient:
         await self._client.aclose()
 
 
-async def _forward_request_id(request: httpx.Request) -> None:
-    """Carry the caller's request id to llm-service, so one id spans both logs."""
-    for name, value in outgoing_headers().items():
+async def _forward_context(request: httpx.Request) -> None:
+    """Carry the caller's request id and identity to llm-service.
+
+    One id then spans both logs, and llm-service verifies the same caller
+    rather than trusting rag-service.
+    """
+    for name, value in {**outgoing_headers(), **auth_headers()}.items():
         request.headers.setdefault(name, value)
 
 

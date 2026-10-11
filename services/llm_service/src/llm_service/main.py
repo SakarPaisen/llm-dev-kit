@@ -4,12 +4,14 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from devkit_common.auth import build_authenticator, require
 from devkit_common.config import Settings, get_settings
 from devkit_common.http import install_service
+from ldk_core.auth import CHAT
 from ldk_core.errors import ErrorCode, ServiceError
 from ldk_core.plugins import EMBEDDER, LLM, PluginKind, PluginNotFoundError, PluginRegistry
 from ldk_core.ports import ChatMessage, CompletionRequest, Embedder, LLMProvider
@@ -58,6 +60,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     registry, configured = build_registry(settings)
     app.state.registry = registry
     app.state.cloud_configured = configured
+    app.state.authenticator = build_authenticator(registry, settings)
     # Fail at startup if the embedder cannot be built (unknown dimension).
     registry.get(EMBEDDER, LOCAL_PROVIDER)
     yield
@@ -131,7 +134,7 @@ async def health(request: Request) -> dict[str, Any]:
     }
 
 
-@app.get("/providers")
+@app.get("/providers", dependencies=[Depends(require(CHAT))])
 async def providers(request: Request) -> list[dict[str, Any]]:
     configured: dict[str, bool] = request.app.state.cloud_configured
     entries: list[dict[str, Any]] = [
@@ -149,7 +152,7 @@ async def providers(request: Request) -> list[dict[str, Any]]:
     return entries
 
 
-@app.get("/models")
+@app.get("/models", dependencies=[Depends(require(CHAT))])
 async def models(request: Request) -> dict[str, list[str]]:
     """Local models come from Ollama live; cloud models are curated LiteLLM
     lists (always shown — users can bring their own key per request)."""
@@ -162,7 +165,7 @@ async def models(request: Request) -> dict[str, list[str]]:
     return {"models": available}
 
 
-@app.post("/generate")
+@app.post("/generate", dependencies=[Depends(require(CHAT))])
 async def generate(req: GenerateRequest, request: Request) -> dict[str, Any]:
     model = req.model or settings.default_chat_model
     provider_name, model_name, provider = _route(request, model)
@@ -170,7 +173,7 @@ async def generate(req: GenerateRequest, request: Request) -> dict[str, Any]:
     return {"response": text, "model": model, "provider": provider_name}
 
 
-@app.post("/generate/stream")
+@app.post("/generate/stream", dependencies=[Depends(require(CHAT))])
 async def generate_stream(req: GenerateRequest, request: Request) -> StreamingResponse:
     model = req.model or settings.default_chat_model
     provider_name, model_name, provider = _route(request, model)
@@ -186,7 +189,7 @@ async def generate_stream(req: GenerateRequest, request: Request) -> StreamingRe
     return StreamingResponse(event_gen(), media_type="application/x-ndjson")
 
 
-@app.post("/embed")
+@app.post("/embed", dependencies=[Depends(require(CHAT))])
 async def embed(req: EmbedRequest, request: Request) -> dict[str, Any]:
     embedder: Embedder = _registry(request).get(EMBEDDER, LOCAL_PROVIDER)
     if req.model and req.model != embedder.model:

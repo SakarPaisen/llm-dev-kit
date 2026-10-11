@@ -1,4 +1,4 @@
-import { getChatProvider } from '@/lib/llm'
+import { backendCredential, getChatProvider } from '@/lib/llm'
 import { ProviderError } from '@/lib/llm/types'
 import { sendMessageSchema } from '@/lib/validations/chat'
 import { ApiError, jsonError, parseBody, requireUser, toApiError } from '@/server/http'
@@ -22,6 +22,7 @@ function frame(event: StreamEvent): Uint8Array {
 export async function POST(request: Request) {
   // Everything before the stream opens can still fail as a normal JSON error.
   let prepared: Awaited<ReturnType<typeof prepareTurn>>
+  let authorization: string | undefined
   try {
     const user = await requireUser()
 
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
 
     const input = await parseBody(request, sendMessageSchema)
     prepared = await prepareTurn(user.id, input)
+    authorization = await backendCredential(user.id)
   } catch (error) {
     return jsonError(toApiError(error))
   }
@@ -77,6 +79,7 @@ export async function POST(request: Request) {
           model: prepared.model,
           messages: prepared.providerMessages,
           signal: upstream.signal,
+          ...(authorization ? { authorization } : {}),
         })) {
           accumulated += delta
           safeEnqueue({ type: 'delta', text: delta })

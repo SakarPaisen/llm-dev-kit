@@ -6,6 +6,7 @@ server this replaced, so these tests prove MCP clients see no change.
 
 import asyncio
 import json
+import secrets
 from collections.abc import Mapping
 from typing import Any
 
@@ -71,6 +72,7 @@ class Services:
     def __init__(self) -> None:
         self.chats: list[dict[str, Any]] = []
         self.request_ids: list[str | None] = []
+        self.authorizations: list[str | None] = []
         self.down = False
 
     def transport(self) -> httpx.MockTransport:
@@ -80,6 +82,7 @@ class Services:
         if self.down:
             raise httpx.ConnectError("connection refused", request=request)
         self.request_ids.append(request.headers.get("x-request-id"))
+        self.authorizations.append(request.headers.get("authorization"))
         if request.url.path == "/models":
             return httpx.Response(200, json={"models": ["llama3.1", "openai/gpt-4o"]})
         if request.url.path == "/chat":
@@ -121,8 +124,8 @@ class TestAskContract(ToolContract):
         return {"message": "hello", "model": None}
 
 
-async def _session_run(services: Services, fn):
-    server = main.create_server("LLM Dev Kit", _tools(services))
+async def _session_run(services: Services, fn, api_key: str | None = None):
+    server = main.create_server("LLM Dev Kit", _tools(services), api_key=api_key)
     async with create_connected_server_and_client_session(server) as session:
         return await fn(session)
 
@@ -183,3 +186,21 @@ def test_each_tool_call_carries_its_own_request_id(services: Services) -> None:
     first, second = services.request_ids
     assert first and second and first != second
     assert len(first) == 32  # minted per call, since stdio carries no headers
+
+
+def test_tool_calls_present_the_configured_api_key(services: Services) -> None:
+    async def calls(session):
+        await session.call_tool("list_models", {})
+        await session.call_tool("ask_llm_dev_kit", {"message": "hello"})
+
+    key = f"sk-ldk-{secrets.token_urlsafe(16)}"
+    asyncio.run(_session_run(services, calls, api_key=key))
+    assert services.authorizations == [f"Bearer {key}", f"Bearer {key}"]
+
+
+def test_without_a_key_tool_calls_carry_no_credential(services: Services) -> None:
+    async def call(session):
+        await session.call_tool("list_models", {})
+
+    asyncio.run(_session_run(services, call))
+    assert services.authorizations == [None]

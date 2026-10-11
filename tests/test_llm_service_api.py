@@ -11,6 +11,7 @@ import pytest
 from fake_litellm import FakeLiteLLM
 from fake_ollama import FakeOllama
 from fastapi.testclient import TestClient
+from identity import Issuer
 
 import ldk_plugin_litellm.provider as litellm_module
 import llm_service.main as main
@@ -62,8 +63,13 @@ def client(monkeypatch: pytest.MonkeyPatch, ollama: FakeOllama, cloud: FakeLiteL
         registry.configure(PluginKind.LLM, "openai", {"api_key": "sk-server"})
         return registry, {"openai": True, "gemini": False, "anthropic": False}
 
+    issuer = Issuer()
     monkeypatch.setattr(main, "build_registry", build_registry)
-    with TestClient(main.app) as client:
+    monkeypatch.setattr(
+        main, "build_authenticator", lambda registry, settings: issuer.authenticator()
+    )
+    # rag-service forwards the caller's token; a viewer's is enough for everything here.
+    with TestClient(main.app, headers=issuer.bearer("viewer")) as client:
         yield client
 
 
@@ -176,3 +182,18 @@ def test_real_build_registry_configures_every_first_party_plugin(
     assert isinstance(ollama, OllamaProvider)
     assert ollama.host == "http://ollama.test:11434"
     assert registry.get(EMBEDDER, "ollama").dimension == 768
+
+
+def test_only_health_is_public(client) -> None:
+    anonymous = {"Authorization": ""}
+    assert client.get("/health", headers=anonymous).status_code == 200
+    for method, path in [
+        ("GET", "/providers"),
+        ("GET", "/models"),
+        ("POST", "/generate"),
+        ("POST", "/generate/stream"),
+        ("POST", "/embed"),
+    ]:
+        res = client.request(method, path, headers=anonymous)
+        assert res.status_code == 401, path
+        assert res.json()["error"]["code"] == "unauthorized", path

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "name": "oidc",
+  "version": "0.1.0",
+  "kind": "auth",
+  "description": "Verifies access tokens from any OpenID Connect issuer, such as Keycloak, and maps a roles claim to llm-dev-kit roles.",
+  "permissions": ["network"],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "issuer": {"type": "string", "minLength": 1},
+      "discovery_url": {"type": "string", "minLength": 1},
+      "jwks_url": {"type": "string", "minLength": 1},
+      "audience": {"type": "string", "minLength": 1},
+      "roles_claim": {"type": "string", "minLength": 1, "default": "realm_access.roles"},
+      "default_role": {"enum": ["viewer", "user", "admin", null], "default": "viewer"},
+      "timeout": {"type": "number", "exclusiveMinimum": 0, "default": 5}
+    },
+    "required": ["issuer", "audience"],
+    "additionalProperties": false
+  }
+}

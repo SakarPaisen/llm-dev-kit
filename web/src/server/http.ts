@@ -4,6 +4,8 @@ import { NextResponse } from 'next/server'
 import { ZodError, type ZodType, type ZodTypeDef } from 'zod'
 
 import { auth } from '@/lib/auth'
+import { db } from '@/lib/db'
+import { asRole, type Role } from '@/lib/roles'
 import { ProviderError } from '@/lib/llm/types'
 
 export type ApiErrorCode =
@@ -130,6 +132,24 @@ export async function requireUser(): Promise<SessionUser> {
     name: user.name ?? null,
     image: user.image ?? null,
   }
+}
+
+/** The signed-in user's role, read from the database, never from the session. */
+export async function roleOf(userId: string): Promise<Role> {
+  const row = await db.user.findUnique({ where: { id: userId }, select: { role: true } })
+  return asRole(row?.role)
+}
+
+/**
+ * Every admin route starts here: 401 without a session, 403 without the admin
+ * role. The role comes from the database, so a demotion applies at once.
+ */
+export async function requireAdmin(): Promise<SessionUser> {
+  const user = await requireUser()
+  if ((await roleOf(user.id)) !== 'admin') {
+    throw new ApiError('forbidden', 'This needs the admin role')
+  }
+  return user
 }
 
 /**

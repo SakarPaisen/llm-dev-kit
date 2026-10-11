@@ -22,6 +22,9 @@ model User {
   image         String?
   /// Null for OAuth-only users.
   passwordHash  String?
+  /// "admin" | "user" | "viewer"; narrowed in lib/roles.ts. The earliest user
+  /// is promoted to admin whenever no admin exists (server/identity/admin.ts).
+  role          String    @default("user")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -29,6 +32,7 @@ model User {
   sessions Session[]
   chats    Chat[]
   folders  Folder[]
+  apiKeys  ApiKey[]
 
   @@index([email])
 }
@@ -70,6 +74,44 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// Identity: the web app signs the access tokens the Python services verify
+// ---------------------------------------------------------------------------
+
+/// A personal API key (sk-ldk-...) for /v1 and the other service APIs.
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  /// The first characters of the key, so a user can tell keys apart.
+  prefix     String
+  /// SHA-256 of the whole key. Keys carry 256 random bits, so a fast hash is
+  /// enough; the key itself is shown once and never stored.
+  hash       String    @unique
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// An RS256 key pair the identity service signs access tokens with. The
+/// public half is published at /.well-known/jwks.json; the private half is
+/// encrypted with a key derived from AUTH_SECRET.
+model SigningKey {
+  /// The JWK "kid".
+  id         String   @id
+  /// Public JWK, as JSON.
+  publicJwk  String
+  /// Private JWK, AES-256-GCM encrypted: base64url iv.tag.ciphertext.
+  privateJwk String
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 // ---------------------------------------------------------------------------

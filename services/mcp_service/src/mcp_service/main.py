@@ -17,9 +17,12 @@ from mcp.server.lowlevel import Server
 from mcp.server.stdio import stdio_server
 
 from devkit_common.config import Settings, get_settings
-from ldk_core.observability import configure_logging, correlation_scope
+from ldk_core.auth import credential_scope
+from ldk_core.observability import configure_logging, correlation_scope, get_logger
 from ldk_core.plugins import TOOL, PluginKind, PluginRegistry
 from ldk_core.ports import Tool
+
+_log = get_logger(__name__)
 
 
 def build_registry(settings: Settings) -> PluginRegistry:
@@ -42,8 +45,16 @@ def build_registry(settings: Settings) -> PluginRegistry:
     return registry
 
 
-def create_server(name: str, tools: list[Tool]) -> Server[Any, Any]:
-    """An MCP server that lists and calls ``tools``."""
+def create_server(name: str, tools: list[Tool], *, api_key: str | None = None) -> Server[Any, Any]:
+    """An MCP server that lists and calls ``tools``.
+
+    Args:
+        name: Shown to MCP clients.
+        tools: What the server offers.
+        api_key: The personal API key (``sk-ldk-...``) the tools present to
+            rag- and llm-service. stdio carries no credentials of its own, so
+            every call made through this server acts as that key's owner.
+    """
     by_name = {tool.name: tool for tool in tools}
     server: Server[Any, Any] = Server(name)
 
@@ -68,10 +79,10 @@ def create_server(name: str, tools: list[Tool]) -> Server[Any, Any]:
         tool = by_name.get(name)
         if tool is None:
             raise ValueError(f"Unknown tool: {name}")
-        # MCP has no authentication until Phase 4 (#14), so there is no caller.
-        # stdio has no request headers: give each call its own id, which the
-        # tools forward to the services they call.
-        with correlation_scope():
+        # stdio has no request headers: give each call its own id and the
+        # configured key, both of which the tools forward to the services.
+        # The services verify the key; this process does not.
+        with correlation_scope(), credential_scope(api_key):
             result = await tool.invoke(arguments, principal=None)
         return _content(result), {"result": result}
 
@@ -101,7 +112,9 @@ async def serve() -> None:
     # stdout carries the MCP protocol; logs go to stderr.
     configure_logging(service="mcp-service", level=settings.log_level, fmt=settings.log_format)
     registry = build_registry(settings)
-    server = create_server(settings.app_name, registry.get_all(TOOL))
+    if not settings.ldk_api_key:
+        _log.warning("LDK_API_KEY is not set: tool calls will be refused with 401")
+    server = create_server(settings.app_name, registry.get_all(TOOL), api_key=settings.ldk_api_key)
     try:
         async with stdio_server() as (read, write):
             await server.run(read, write, server.create_initialization_options())

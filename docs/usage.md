@@ -18,13 +18,25 @@ and the model is told to answer from those chunks only.
 
 ## For the host
 
+The first account created on a new install is the **admin**. Register yours
+before anyone else does.
+
+Every command below needs a personal API key. In the web app, open the account
+menu (bottom left) → **API keys** → **Create**, copy the key (it is shown
+once), and keep it in a variable:
+
+```bash
+KEY=sk-ldk-...
+```
+
 ### Add documents
 
 Upload PDFs from the command line. There is no upload button in the app yet;
 it comes with per-user documents ([#15](https://github.com/sameeralam3127/llm-dev-kit/issues/15)).
 
 ```bash
-curl -F "file=@handbook.pdf" http://localhost:8080/api/rag/ingest/pdf
+curl -H "Authorization: Bearer $KEY" -F "file=@handbook.pdf" \
+  http://localhost:8080/api/rag/ingest/pdf
 # {"chunks":12}
 ```
 
@@ -38,20 +50,35 @@ curl -F "file=@handbook.pdf" http://localhost:8080/api/rag/ingest/pdf
   the answer from before the change:
 
   ```bash
-  curl -X POST http://localhost:8080/api/rag/cache/clear
+  curl -X POST -H "Authorization: Bearer $KEY" http://localhost:8080/api/rag/cache/clear
   ```
 
 ### Check and clear the index
 
+These need the admin role.
+
 ```bash
 # how many chunks are indexed
-curl http://localhost:8080/api/rag/documents/stats
+curl -H "Authorization: Bearer $KEY" http://localhost:8080/api/rag/documents/stats
 
 # remove every document, for every user
-curl -X POST http://localhost:8080/api/rag/documents/clear
+curl -X POST -H "Authorization: Bearer $KEY" http://localhost:8080/api/rag/documents/clear
 ```
 
 There is no way to remove a single document.
+
+### Roles
+
+| Role | Can |
+| --- | --- |
+| `viewer` | chat |
+| `user` | chat and add documents |
+| `admin` | everything, including clearing the index and the cache |
+
+Everyone after the first account is a `user`. To change someone's role, open
+the account menu → **Admin** → **Users**. The instance always keeps at least
+one admin. The **Health** tab on the same page shows whether each service is
+up, how many chunks are indexed, and the signing key's age.
 
 ### Let other people in
 
@@ -73,14 +100,16 @@ account.
 3. Send people the address so they can create accounts.
 4. Once they have, set `ALLOW_REGISTRATION=false` and run
    `docker compose up -d` again, so nobody else can sign up. There is no
-   admin screen or invite system yet ([#17](https://github.com/sameeralam3127/llm-dev-kit/issues/17)).
+   invite system yet ([#17](https://github.com/sameeralam3127/llm-dev-kit/issues/17)).
 
-> [!WARNING]
-> Only the chat app asks people to sign in; the APIs behind it do not. With
-> `GATEWAY_BIND=0.0.0.0`, anyone who can reach port 8080 can upload
-> documents, clear the index, and use your models through `/v1`, with no
-> account. Only do this on a network where you trust everyone. Sign-in for the
-> APIs arrives with Phase 4 ([#14](https://github.com/sameeralam3127/llm-dev-kit/issues/14)).
+Every API needs a session or an API key, so nobody without an account can use
+your models or touch the index. Two things still need care:
+
+- **Anyone who registers can add documents**, and documents are shared. Keep
+  registration open only as long as it takes your team to sign up.
+- **Prefer single sign-on for a team.** With the `sso` profile, people sign in
+  with a Keycloak account you create, so there is no open registration at all.
+  The settings are in the "Single sign-on" section of `.env.example`.
 
 ## For everyone: chatting
 
@@ -133,12 +162,15 @@ Useful while chatting:
 Both of these use the same documents as the chat app.
 
 - **Any OpenAI SDK or client**, such as Open WebUI or LangChain: point it at
-  `http://<host>:8080/v1`, use the model `llama3.1`, and any API key starting
-  with `sk-local`. See [API Reference](../README.md#api-reference).
+  `http://<host>:8080/v1`, use the model `llama3.1`, and your own API key
+  (account menu → **API keys**). See [Use it from code](../README.md#use-it-from-code).
 - **Claude Desktop or another MCP client:** run
-  `docker compose --profile mcp run --rm -T mcp` as the server command. It
-  provides two tools, `ask_llm_dev_kit` and `list_models`. See
-  [MCP Usage](../README.md#mcp-usage).
+  `docker compose --profile mcp run --rm -T mcp` as the server command, with
+  `LDK_API_KEY` set to your API key. It provides two tools, `ask_llm_dev_kit`
+  and `list_models`. See [Use it from code](../README.md#use-it-from-code).
+
+An API key acts as you, with your role. Revoke it from the same dialog; it
+stops working within a minute.
 
 ## Current limits
 
@@ -148,6 +180,5 @@ Both of these use the same documents as the chat app.
 | One shared index; no deleting a single document; re-uploads duplicate | [#15](https://github.com/sameeralam3127/llm-dev-kit/issues/15) |
 | Cached answers do not update when documents change | Clear the cache by hand (see above) |
 | When documents are indexed, every chat answers from them only | Not planned yet |
-| No sign-in on the APIs | [#14](https://github.com/sameeralam3127/llm-dev-kit/issues/14) |
-| No admin screen or invites | [#17](https://github.com/sameeralam3127/llm-dev-kit/issues/17) |
+| No invites; the admin page has users, roles and health only | [#17](https://github.com/sameeralam3127/llm-dev-kit/issues/17) |
 | `-cloud` models leave the machine | [#13](https://github.com/sameeralam3127/llm-dev-kit/issues/13) |

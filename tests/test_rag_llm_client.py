@@ -5,13 +5,14 @@ import json
 
 import httpx
 
+from ldk_core.auth import credential_scope
 from ldk_core.observability import correlation_scope
 from rag_service.llm_client import LLMServiceClient
 
 
-def _client(seen: list[str | None]) -> LLMServiceClient:
+def _client(seen: list[str | None], header: str = "x-request-id") -> LLMServiceClient:
     def handle(request: httpx.Request) -> httpx.Response:
-        seen.append(request.headers.get("x-request-id"))
+        seen.append(request.headers.get(header))
         if request.url.path == "/generate/stream":
             lines = [{"delta": "hi"}, {"done": True}]
             return httpx.Response(200, text="\n".join(json.dumps(line) for line in lines))
@@ -47,3 +48,18 @@ def test_no_header_outside_a_request() -> None:
 
     asyncio.run(call())
     assert seen == [None]
+
+
+def test_every_call_to_llm_service_carries_the_callers_credential() -> None:
+    seen: list[str | None] = []
+    client = _client(seen, header="authorization")
+
+    async def calls() -> None:
+        with credential_scope("token-of-the-caller"):
+            await client.models()
+            assert [d async for d in client.generate_stream("prompt")] == ["hi"]
+        await client.models()
+        await client.close()
+
+    asyncio.run(calls())
+    assert seen == ["Bearer token-of-the-caller", "Bearer token-of-the-caller", None]

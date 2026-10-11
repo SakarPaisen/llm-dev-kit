@@ -4,6 +4,7 @@ import { hashPassword } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { getEnv } from '@/lib/env'
 import { registerSchema } from '@/lib/validations/auth'
+import { ensureAdmin } from '@/server/identity/admin'
 import { ApiError, parseBody, withErrorHandling } from '@/server/http'
 import { clientKey, rateLimit } from '@/server/rate-limit'
 
@@ -34,9 +35,19 @@ export const POST = withErrorHandling(async (request: Request) => {
     throw new ApiError('conflict', 'An account with that email already exists')
   }
 
-  const user = await db.user.create({
-    data: { name, email, passwordHash: await hashPassword(password) },
-    select: { id: true, name: true, email: true },
+  const passwordHash = await hashPassword(password)
+  // The first account becomes the admin in the same transaction that creates
+  // it, so there is never a moment with users but no admin.
+  const user = await db.$transaction(async (tx) => {
+    const created = await tx.user.create({
+      data: { name, email, passwordHash },
+      select: { id: true },
+    })
+    await ensureAdmin(tx)
+    return tx.user.findUniqueOrThrow({
+      where: { id: created.id },
+      select: { id: true, name: true, email: true, role: true },
+    })
   })
 
   return NextResponse.json({ data: user }, { status: 201 })

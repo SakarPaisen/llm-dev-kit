@@ -4,11 +4,13 @@ chunker plugins, an in-memory vector store, and fakes for llm-service and Redis.
 
 import pytest
 from fastapi.testclient import TestClient
+from identity import Issuer
 from memory_store import MemoryVectorStore
 from pdfs import make_pdf
 
 import rag_service.main as main
 from devkit_common.config import Settings
+from ldk_core.auth import auth_headers
 from ldk_core.errors import ErrorCode, ServiceError
 from ldk_core.plugins import CHUNKER, LOADER, VECTOR_STORE, Plugin, PluginRegistry, parse_manifest
 from ldk_plugin_chroma import ChromaVectorStore
@@ -23,6 +25,9 @@ class FakeLLMClient:
 
     def __init__(self, *_: object) -> None:
         self.prompts: list[str] = []
+        self.api_keys: list[str | None] = []
+        # The Authorization this client would send to llm-service, per call.
+        self.forwarded: list[str | None] = []
         self.embed_error: ServiceError | None = None
 
     async def models(self) -> list[str]:
@@ -38,10 +43,14 @@ class FakeLLMClient:
 
     async def generate(self, prompt: str, model=None, api_key=None, options=None) -> dict:
         self.prompts.append(prompt)
+        self.api_keys.append(api_key)
+        self.forwarded.append(auth_headers().get("Authorization"))
         return {"response": "grounded answer", "model": model, "provider": "ollama"}
 
     async def generate_stream(self, prompt: str, model=None, api_key=None, options=None):
         self.prompts.append(prompt)
+        self.api_keys.append(api_key)
+        self.forwarded.append(auth_headers().get("Authorization"))
         yield "grounded "
         yield "answer"
 
@@ -95,10 +104,31 @@ def store() -> MemoryVectorStore:
 
 
 @pytest.fixture
-def client(monkeypatch: pytest.MonkeyPatch, store: MemoryVectorStore):
+def issuer() -> Issuer:
+    return Issuer()
+
+
+def _patch(monkeypatch: pytest.MonkeyPatch, store: MemoryVectorStore, issuer: Issuer, **auth):
     monkeypatch.setattr(main, "build_registry", lambda settings: _registry(store))
     monkeypatch.setattr(main, "LLMServiceClient", FakeLLMClient)
     monkeypatch.setattr(main, "ChatCache", NoCache)
+    monkeypatch.setattr(
+        main, "build_authenticator", lambda registry, settings: issuer.authenticator(**auth)
+    )
+
+
+@pytest.fixture
+def client(monkeypatch: pytest.MonkeyPatch, store: MemoryVectorStore, issuer: Issuer):
+    """Every request carries an admin token unless the test says otherwise."""
+    _patch(monkeypatch, store, issuer)
+    with TestClient(main.app, headers=issuer.bearer("admin")) as client:
+        yield client
+
+
+@pytest.fixture
+def legacy_client(monkeypatch: pytest.MonkeyPatch, store: MemoryVectorStore, issuer: Issuer):
+    """ALLOW_LEGACY_ANONYMOUS=true, and no default credential."""
+    _patch(monkeypatch, store, issuer, allow_anonymous=True)
     with TestClient(main.app) as client:
         yield client
 
@@ -132,12 +162,9 @@ def test_document_stats_and_clear(client) -> None:
     assert client.get("/documents/stats").json()["document_count"] == 0
 
 
-def test_store_outage_degrades_like_before(monkeypatch: pytest.MonkeyPatch) -> None:
-    offline = OfflineStore(name="chroma")
-    monkeypatch.setattr(main, "build_registry", lambda settings: _registry(offline))
-    monkeypatch.setattr(main, "LLMServiceClient", FakeLLMClient)
-    monkeypatch.setattr(main, "ChatCache", NoCache)
-    with TestClient(main.app) as client:
+def test_store_outage_degrades_like_before(monkeypatch: pytest.MonkeyPatch, issuer: Issuer) -> None:
+    _patch(monkeypatch, OfflineStore(name="chroma"), issuer)
+    with TestClient(main.app, headers=issuer.bearer("admin")) as client:
         assert client.get("/documents/stats").json() == {
             "status": "offline",
             "document_count": 0,
@@ -193,3 +220,99 @@ def test_real_build_registry_configures_the_rag_plugins(monkeypatch: pytest.Monk
     chunker = registry.get(CHUNKER, "fixed")
     assert isinstance(chunker, FixedWindowChunker)
     assert (chunker.size, chunker.overlap) == (500, 50)
+
+
+# ------------------------------------------------------------ authentication
+
+NO_CREDENTIAL = {"Authorization": ""}
+PROTECTED = [
+    ("GET", "/models"),
+    ("POST", "/chat"),
+    ("POST", "/chat/stream"),
+    ("POST", "/ingest/pdf"),
+    ("GET", "/cache/stats"),
+    ("POST", "/cache/clear"),
+    ("GET", "/documents/stats"),
+    ("POST", "/documents/clear"),
+    ("GET", "/v1/models"),
+    ("POST", "/v1/chat/completions"),
+]
+
+
+def test_every_route_but_health_needs_a_credential(client) -> None:
+    assert client.get("/health", headers=NO_CREDENTIAL).status_code == 200
+    for method, path in PROTECTED:
+        res = client.request(method, path, headers=NO_CREDENTIAL)
+        assert res.status_code == 401, path
+        assert res.json()["error"]["code"] == "unauthorized", path
+        assert res.headers["www-authenticate"].startswith("Bearer"), path
+
+
+def test_a_viewer_can_chat_but_not_ingest(client, issuer: Issuer) -> None:
+    viewer = issuer.bearer("viewer")
+    assert client.post("/chat", json={"message": "hi"}, headers=viewer).status_code == 200
+
+    res = client.post(
+        "/ingest/pdf", files={"file": ("a.pdf", make_pdf(["x"]), "application/pdf")}, headers=viewer
+    )
+    assert res.status_code == 403
+    assert res.json()["error"]["code"] == "forbidden"
+
+
+def test_a_user_can_ingest_but_only_an_admin_can_clear(client, issuer: Issuer) -> None:
+    user = issuer.bearer("user")
+    res = client.post(
+        "/ingest/pdf", files={"file": ("a.pdf", make_pdf(["x"]), "application/pdf")}, headers=user
+    )
+    assert res.status_code == 200
+    assert client.post("/documents/clear", headers=user).status_code == 403
+    assert client.post("/cache/clear", headers=user).status_code == 403
+    assert client.post("/documents/clear").status_code == 200  # the fixture's admin
+
+
+def test_v1_accepts_a_personal_api_key(client, issuer: Issuer) -> None:
+    issuer.api_keys["sk-ldk-sdk-key-0001"] = "viewer"
+    res = client.post(
+        "/v1/chat/completions",
+        json={"model": "llama3.1", "messages": [{"role": "user", "content": "hi"}]},
+        headers={"Authorization": "Bearer sk-ldk-sdk-key-0001"},
+    )
+    assert res.status_code == 200
+    # llm-service gets the exchanged token, never the key itself, and the
+    # Bearer is an identity, not a cloud key.
+    llm = client.app.state.llm
+    assert llm.forwarded[-1].startswith("Bearer ey")
+    assert llm.api_keys[-1] is None
+
+
+def test_the_callers_token_reaches_llm_service_while_streaming(client, issuer: Issuer) -> None:
+    token = issuer.token("user")
+    res = client.post(
+        "/chat/stream", json={"message": "hi"}, headers={"Authorization": f"Bearer {token}"}
+    )
+    assert res.status_code == 200
+    assert client.app.state.llm.forwarded == [f"Bearer {token}"]
+
+
+def test_legacy_anonymous_keeps_the_old_v1_contract(legacy_client) -> None:
+    body = {"model": "openai/gpt-4o", "messages": [{"role": "user", "content": "hi"}]}
+    assert legacy_client.post("/v1/chat/completions", json=body).status_code == 200
+    legacy_client.post(
+        "/v1/chat/completions", json=body, headers={"Authorization": "Bearer sk-openai-real"}
+    )
+    legacy_client.post(
+        "/v1/chat/completions", json=body, headers={"Authorization": "Bearer sk-local-x"}
+    )
+
+    llm = legacy_client.app.state.llm
+    # No key, a cloud key forwarded as before, a placeholder ignored as before.
+    assert llm.api_keys == [None, "sk-openai-real", None]
+    assert llm.forwarded == [None, None, None]
+
+
+def test_one_requests_identity_does_not_leak_into_the_next(legacy_client, issuer: Issuer) -> None:
+    legacy_client.post("/chat", json={"message": "a"}, headers=issuer.bearer("user"))
+    legacy_client.post("/chat", json={"message": "b"})
+    forwarded = legacy_client.app.state.llm.forwarded
+    assert forwarded[0] and forwarded[0].startswith("Bearer ")
+    assert forwarded[1] is None

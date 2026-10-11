@@ -57,7 +57,9 @@ services:
       # Inside the network, reach rag-service directly rather than looping
       # back out through nginx.
       LLM_BASE_URL: http://rag-service:8020/v1
-      LLM_API_KEY: ${LLM_API_KEY:-sk-local}
+      # Checked by the admin health page.
+      RAG_SERVICE_URL: http://rag-service:8020
+      LLM_SERVICE_URL: http://llm-service:8010
       DEFAULT_MODEL: ${DEFAULT_CHAT_MODEL:-llama3.1}
       DATABASE_URL: file:/data/web.db
       # No default on purpose — a shipped signing key would let anyone forge a
@@ -66,6 +68,13 @@ services:
       AUTH_URL: ${WEB_PUBLIC_URL:-http://localhost:8080}
       AUTH_TRUST_HOST: "true"
       ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
+      # SSO (sso profile). Registered only when all three are set.
+      AUTH_KEYCLOAK_ID: ${AUTH_KEYCLOAK_ID:-}
+      AUTH_KEYCLOAK_SECRET: ${AUTH_KEYCLOAK_SECRET:-}
+      AUTH_KEYCLOAK_ISSUER: ${AUTH_KEYCLOAK_ISSUER:-}
+      # How this container reaches the same issuer: through the network, not
+      # the public URL, which inside a container points back at itself.
+      AUTH_KEYCLOAK_INTERNAL_ISSUER: http://keycloak:8080/sso/realms/llm-dev-kit
     volumes:
       - web_data:/data
     deploy:
@@ -103,6 +112,12 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-https://api.anthropic.com}
+      # Callers are verified against the web app's keys (AUTH_JWKS_URL defaults
+      # to http://web:3000/.well-known/jwks.json); see docs/v2/MIGRATION.md.
+      ALLOW_LEGACY_ANONYMOUS: ${ALLOW_LEGACY_ANONYMOUS:-false}
+      # Optional: also accept access tokens straight from an OIDC issuer.
+      AUTH_OIDC_ISSUER: ${AUTH_OIDC_ISSUER:-}
+      AUTH_OIDC_DISCOVERY_URL: ${AUTH_OIDC_DISCOVERY_URL:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ulimits: *high-connection-ulimits
@@ -141,6 +156,9 @@ services:
       CHROMA_PORT: 8000
       DEFAULT_CHAT_MODEL: ${DEFAULT_CHAT_MODEL:-llama3.1}
       CACHE_TTL: ${CACHE_TTL:-3600}
+      ALLOW_LEGACY_ANONYMOUS: ${ALLOW_LEGACY_ANONYMOUS:-false}
+      AUTH_OIDC_ISSUER: ${AUTH_OIDC_ISSUER:-}
+      AUTH_OIDC_DISCOVERY_URL: ${AUTH_OIDC_DISCOVERY_URL:-}
     ulimits: *high-connection-ulimits
     depends_on:
       llm-service:
@@ -163,6 +181,9 @@ services:
       LOG_FORMAT: ${LOG_FORMAT:-json}
       LLM_SERVICE_URL: http://llm-service:8010
       RAG_SERVICE_URL: http://rag-service:8020
+      # A personal API key (account menu → API keys); every tool call acts as
+      # its owner. Without one, tool calls are refused with 401.
+      LDK_API_KEY: ${LDK_API_KEY:-}
     deploy:
       resources:
         reservations:
@@ -236,8 +257,46 @@ services:
       - ollama
     restart: unless-stopped
 
+  # Optional: single sign-on with Keycloak. Enable with
+  # `docker compose --profile sso up` after setting KEYCLOAK_ADMIN_PASSWORD,
+  # AUTH_KEYCLOAK_ID and AUTH_KEYCLOAK_SECRET in .env (see .env.example). It
+  # imports a ready llm-dev-kit realm and is served by the gateway at /sso.
+  # Runs in Keycloak's dev mode on its own file database: fine for a team on
+  # one machine, not a substitute for a production Keycloak.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4.0
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_HTTP_RELATIVE_PATH: /sso
+      # The public URL; issuer and browser redirects use it. Calls from other
+      # containers arrive as keycloak:8080 and get internal URLs back.
+      KC_HOSTNAME: ${WEB_PUBLIC_URL:-http://localhost:8080}/sso
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-}
+      # Substituted into the realm file on import.
+      AUTH_KEYCLOAK_SECRET: ${AUTH_KEYCLOAK_SECRET:-}
+      WEB_PUBLIC_URL: ${WEB_PUBLIC_URL:-http://localhost:8080}
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      - ./deploy/keycloak/llm-dev-kit-realm.json:/opt/keycloak/data/import/llm-dev-kit-realm.json:ro
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+        limits:
+          cpus: "2.0"
+          memory: 1024M
+    profiles:
+      - sso
+    restart: unless-stopped
+
 volumes:
   chroma_data:
+  keycloak_data:
   ollama_data:
   web_data:
 

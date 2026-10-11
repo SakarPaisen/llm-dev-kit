@@ -12,7 +12,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol, runtime_checkable
 
-PrincipalKind = Literal["user", "service", "api_key"]
+PrincipalKind = Literal["user", "service", "api_key", "anonymous"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,6 +26,10 @@ class Principal:
         scopes: Fine-grained permissions granted to this credential.
         claims: The verified claims, for audit. Never trusted for access
             decisions beyond what ``roles`` and ``scopes`` already express.
+        credential: The bearer token to present to other services on this
+            principal's behalf: the verified token itself, or the short-lived
+            token an API key was exchanged for. ``None`` for anonymous callers.
+            Never logged.
     """
 
     subject: str
@@ -33,10 +37,15 @@ class Principal:
     roles: frozenset[str] = frozenset()
     scopes: frozenset[str] = frozenset()
     claims: Mapping[str, Any] = field(default_factory=dict, repr=False)
+    credential: str | None = field(default=None, repr=False)
 
     def has_role(self, role: str) -> bool:
         """Return whether this principal holds ``role``."""
         return role in self.roles
+
+    def has_scope(self, scope: str) -> bool:
+        """Return whether this principal's credential grants ``scope``."""
+        return scope in self.scopes
 
 
 @runtime_checkable

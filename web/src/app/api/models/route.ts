@@ -7,8 +7,8 @@ import { requireUser, withErrorHandling } from '@/server/http'
 export const runtime = 'nodejs'
 
 export const GET = withErrorHandling(async () => {
-  await requireUser()
-  const models = await getAvailableModels()
+  const user = await requireUser()
+  const models = await getAvailableModels(user.id)
 
   return NextResponse.json({
     data: models,
