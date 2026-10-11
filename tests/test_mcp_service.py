@@ -6,6 +6,7 @@ server this replaced, so these tests prove MCP clients see no change.
 
 import asyncio
 import json
+import secrets
 from collections.abc import Mapping
 from typing import Any
 
@@ -192,8 +193,9 @@ def test_tool_calls_present_the_configured_api_key(services: Services) -> None:
         await session.call_tool("list_models", {})
         await session.call_tool("ask_llm_dev_kit", {"message": "hello"})
 
-    asyncio.run(_session_run(services, calls, api_key="sk-ldk-mcp-key"))
-    assert services.authorizations == ["Bearer sk-ldk-mcp-key", "Bearer sk-ldk-mcp-key"]
+    key = f"sk-ldk-{secrets.token_urlsafe(16)}"
+    asyncio.run(_session_run(services, calls, api_key=key))
+    assert services.authorizations == [f"Bearer {key}", f"Bearer {key}"]
 
 
 def test_without_a_key_tool_calls_carry_no_credential(services: Services) -> None:

@@ -8,13 +8,9 @@ accepts a credential to verify it.
 Access is decided by scope. The web app derives a token's scopes from the
 user's role, so a role is a bundle of scopes:
 
-======== =========================
-Role     Scopes
-======== =========================
-viewer   ``chat``
-user     ``chat``, ``ingest``
-admin    ``chat``, ``ingest``, ``admin``
-======== =========================
+- ``viewer``: ``chat``
+- ``user``: ``chat``, ``ingest``
+- ``admin``: ``chat``, ``ingest``, ``admin``
 
 ``ALLOW_LEGACY_ANONYMOUS`` keeps the pre-v2 behaviour, where any caller could
 do anything, for one release. Each anonymous request is logged as a warning.

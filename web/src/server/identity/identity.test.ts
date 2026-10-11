@@ -1,4 +1,6 @@
 // @vitest-environment node
+import { randomBytes } from 'node:crypto'
+
 import { createLocalJWKSet, jwtVerify } from 'jose'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -31,7 +33,7 @@ const state = vi.hoisted(() => ({
   keys: [] as KeyRow[],
   apiKeys: [] as ApiKeyRow[],
   env: {
-    AUTH_SECRET: 'test-secret-0123456789-0123456789-abcdef',
+    AUTH_SECRET: '',
     IDENTITY_ISSUER: 'llm-dev-kit-web',
     IDENTITY_AUDIENCE: 'llm-dev-kit',
   },
@@ -135,6 +137,9 @@ import { mintAccessToken } from '@/server/identity/tokens'
 
 const DAY = 24 * 60 * 60 * 1000
 
+/** A fresh secret per test, as long as a real AUTH_SECRET. */
+const randomSecret = () => randomBytes(32).toString('base64')
+
 function user(id: string, role = 'user', ageDays = 0): UserRow {
   const row = { id, role, createdAt: new Date(Date.now() - ageDays * DAY) }
   state.users.push(row)
@@ -154,17 +159,18 @@ beforeEach(() => {
   state.users = []
   state.keys = []
   state.apiKeys = []
-  state.env.AUTH_SECRET = 'test-secret-0123456789-0123456789-abcdef'
+  state.env.AUTH_SECRET = randomSecret()
   resetSigningKeyCache()
 })
 
 describe('secret box', () => {
   it('round-trips and refuses another secret', () => {
-    const sealed = seal('private jwk', 'secret-a-0123456789-0123456789')
+    const [a, b] = [randomSecret(), randomSecret()]
+    const sealed = seal('private jwk', a)
     expect(sealed).not.toContain('private jwk')
-    expect(open(sealed, 'secret-a-0123456789-0123456789')).toBe('private jwk')
-    expect(open(sealed, 'secret-b-0123456789-0123456789')).toBeNull()
-    expect(open('garbage', 'secret-a-0123456789-0123456789')).toBeNull()
+    expect(open(sealed, a)).toBe('private jwk')
+    expect(open(sealed, b)).toBeNull()
+    expect(open('garbage', a)).toBeNull()
   })
 })
 
@@ -238,7 +244,7 @@ describe('signing keys', () => {
   it('rotate when AUTH_SECRET changes rather than fail', async () => {
     user('u1')
     await mintAccessToken('u1')
-    state.env.AUTH_SECRET = 'a-different-secret-0123456789-0123456789'
+    state.env.AUTH_SECRET = randomSecret()
     resetSigningKeyCache()
     await verify((await mintAccessToken('u1')).token)
     expect(state.keys).toHaveLength(2)
