@@ -10,15 +10,48 @@
   "bruteForceProtected": true,
   "roles": {
     "realm": [
-      { "name": "admin", "description": "Everything, including clearing the index and the cache." },
-      { "name": "user", "description": "Chat and add documents." },
-      { "name": "viewer", "description": "Chat only." }
+      {
+        "name": "offline_access",
+        "description": "${role_offline-access}"
+      },
+      {
+        "name": "uma_authorization",
+        "description": "${role_uma_authorization}"
+      },
+      {
+        "name": "admin",
+        "description": "Everything, including clearing the index and the cache."
+      },
+      {
+        "name": "user",
+        "description": "Chat and add documents."
+      },
+      {
+        "name": "viewer",
+        "description": "Chat only."
+      },
+      {
+        "name": "default-roles-llm-dev-kit",
+        "description": "Granted to every new user: llm-dev-kit's user role plus Keycloak's usual defaults.",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "offline_access",
+            "uma_authorization",
+            "user"
+          ],
+          "client": {
+            "account": [
+              "view-profile",
+              "manage-account"
+            ]
+          }
+        }
+      }
     ]
   },
   "defaultRole": {
-    "name": "default-roles-llm-dev-kit",
-    "composite": true,
-    "composites": { "realm": ["offline_access", "uma_authorization", "user"] }
+    "name": "default-roles-llm-dev-kit"
   },
   "clients": [
     {
@@ -29,8 +62,12 @@
       "publicClient": false,
       "clientAuthenticatorType": "client-secret",
       "secret": "${AUTH_KEYCLOAK_SECRET}",
-      "redirectUris": ["${WEB_PUBLIC_URL}/api/auth/callback/keycloak"],
-      "webOrigins": ["${WEB_PUBLIC_URL}"],
+      "redirectUris": [
+        "${WEB_PUBLIC_URL}/api/auth/callback/keycloak"
+      ],
+      "webOrigins": [
+        "${WEB_PUBLIC_URL}"
+      ],
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
