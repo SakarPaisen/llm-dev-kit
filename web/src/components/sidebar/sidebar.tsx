@@ -18,9 +18,10 @@ import { groupChatsByDate } from '@/lib/date-groups'
 import { cn } from '@/lib/utils'
 import { useUiStore } from '@/stores/ui-store'
 import type { ChatSummary } from '@/types/chat'
+import type { ShellUser } from '@/types/user'
 
 interface SidebarProps {
-  user: { name: string | null; email: string | null; image: string | null }
+  user: ShellUser
   /** Desktop only: render the icon rail instead of the full panel. */
   collapsed?: boolean
   /** Desktop only: show the collapse/expand control. */

@@ -57,6 +57,9 @@ services:
       # Inside the network, reach rag-service directly rather than looping
       # back out through nginx.
       LLM_BASE_URL: http://rag-service:8020/v1
+      # Checked by the admin health page.
+      RAG_SERVICE_URL: http://rag-service:8020
+      LLM_SERVICE_URL: http://llm-service:8010
       DEFAULT_MODEL: ${DEFAULT_CHAT_MODEL:-llama3.1}
       DATABASE_URL: file:/data/web.db
       # No default on purpose — a shipped signing key would let anyone forge a

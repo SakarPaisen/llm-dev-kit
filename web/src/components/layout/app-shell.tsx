@@ -10,9 +10,10 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { useGlobalShortcuts } from '@/hooks/use-global-shortcuts'
 import { cn } from '@/lib/utils'
 import { useUiStore } from '@/stores/ui-store'
+import type { ShellUser } from '@/types/user'
 
 interface AppShellProps {
-  user: { name: string | null; email: string | null; image: string | null }
+  user: ShellUser
   children: React.ReactNode
 }
 

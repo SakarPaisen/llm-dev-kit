@@ -1,6 +1,7 @@
 'use client'
 
-import { ChevronsUpDown, KeyRound, LogOut, Monitor, Moon, Sun } from 'lucide-react'
+import { ChevronsUpDown, KeyRound, LogOut, Monitor, Moon, ShieldCheck, Sun } from 'lucide-react'
+import Link from 'next/link'
 import { signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import * as React from 'react'
@@ -20,9 +21,10 @@ import { ROUTES } from '@/lib/constants'
 import { originOf, switchTheme, type ThemeChoice } from '@/lib/theme-transition'
 import { cn, initialsOf } from '@/lib/utils'
 import { useUiStore } from '@/stores/ui-store'
+import type { ShellUser } from '@/types/user'
 
 interface UserMenuProps {
-  user: { name: string | null; email: string | null; image: string | null }
+  user: ShellUser
   /** Avatar only, for the collapsed rail. */
   compact?: boolean
 }
@@ -100,6 +102,14 @@ export function UserMenu({ user, compact = false }: UserMenuProps) {
           <KeyRound />
           API keys
         </DropdownMenuItem>
+        {user.isAdmin && (
+          <DropdownMenuItem asChild>
+            <Link href={ROUTES.admin}>
+              <ShieldCheck />
+              Admin
+            </Link>
+          </DropdownMenuItem>
+        )}
 
         <DropdownMenuSeparator />
 

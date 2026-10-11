@@ -4,6 +4,8 @@ import type {
   Folder,
   ModelInfo,
 } from '@/types/chat'
+import type { Role } from '@/lib/roles'
+import type { AdminHealth, AdminUser } from '@/types/admin'
 import type { ApiKeySummary, CreatedApiKey } from '@/types/api-key'
 import type {
   CreateChatInput,
@@ -138,6 +140,23 @@ export const api = {
     },
   },
 
+  admin: {
+    users(signal?: AbortSignal): Promise<AdminUser[]> {
+      return request('/api/admin/users', { signal })
+    },
+
+    setRole(userId: string, role: Role): Promise<AdminUser> {
+      return request(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      })
+    },
+
+    health(signal?: AbortSignal): Promise<AdminHealth> {
+      return request('/api/admin/health', { signal })
+    },
+  },
+
   keys: {
     list(signal?: AbortSignal): Promise<ApiKeySummary[]> {
       return request('/api/keys', { signal })
@@ -173,4 +192,6 @@ export const queryKeys = {
   folders: () => ['folders'] as const,
   models: () => ['models'] as const,
   apiKeys: () => ['api-keys'] as const,
+  adminUsers: () => ['admin', 'users'] as const,
+  adminHealth: () => ['admin', 'health'] as const,
 }

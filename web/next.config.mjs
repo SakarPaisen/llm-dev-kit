@@ -5,6 +5,8 @@ const nextConfig = {
   experimental: {
     // Keep heavy markdown/highlight deps out of the client bundle where possible.
     optimizePackageImports: ['lucide-react', 'date-fns'],
+    // forbidden(): the admin pages answer non-admins with a real 403.
+    authInterrupts: true,
   },
   serverExternalPackages: ['bcryptjs', '@prisma/client'],
   async headers() {

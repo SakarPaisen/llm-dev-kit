@@ -47,6 +47,10 @@ const serverSchema = z.object({
   DEFAULT_MODEL: z.string().default('llama3.1'),
   LLM_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(120_000),
 
+  /** Base URLs the admin health page checks. */
+  RAG_SERVICE_URL: z.string().url().default('http://localhost:8020'),
+  LLM_SERVICE_URL: z.string().url().default('http://localhost:8010'),
+
   /** `iss` and `aud` of the access tokens; must match the Python services. */
   IDENTITY_ISSUER: z.string().min(1).default('llm-dev-kit-web'),
   IDENTITY_AUDIENCE: z.string().min(1).default('llm-dev-kit'),
