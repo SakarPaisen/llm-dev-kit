@@ -355,3 +355,7 @@ Full walkthrough and more failure modes: [docs/setup.md](docs/setup.md).
 | [docs/v2/PLAN.md](docs/v2/PLAN.md) | The v2 plan: target architecture, interfaces, migration and phases |
 | [docs/setup.md](docs/setup.md) | Step-by-step setup, PDF ingestion, and troubleshooting |
 | [web/README.md](web/README.md) | Frontend architecture, environment variables, and feature detail |
+
+## License
+
+[MIT](LICENSE) © 2025 Sameer Alam.
