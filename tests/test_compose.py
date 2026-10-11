@@ -68,6 +68,23 @@ def test_the_default_stack_publishes_the_gateway() -> None:
     assert _services(ROOT / "docker-compose.yml")[GATEWAY].get("ports")
 
 
+def test_the_default_stack_is_not_a_dev_stack() -> None:
+    """No --reload and no source bind mounts outside compose.dev.yml."""
+    for name, service in _services(ROOT / "docker-compose.yml").items():
+        command = service.get("command") or ""
+        command = command if isinstance(command, str) else " ".join(command)
+        assert "--reload" not in command, f"{name} runs with --reload"
+        mounts = [v for v in service.get("volumes") or [] if isinstance(v, str)]
+        sources = [m for m in mounts if m.startswith("./services/")]
+        assert sources == [], f"{name} bind-mounts source: {sources}"
+
+
+def test_the_dev_overlay_is_opt_in() -> None:
+    # An override file would be applied by every plain `docker compose up`.
+    assert not (ROOT / "docker-compose.override.yml").exists()
+    assert (ROOT / "compose.dev.yml").exists()
+
+
 @pytest.mark.parametrize(
     ("entry", "host_ip"),
     [

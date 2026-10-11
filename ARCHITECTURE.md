@@ -176,8 +176,9 @@ base:
   repeating it per stage;
 - containers run as a non-root `appuser`;
 - healthchecks use the Python stdlib (no curl in the images);
-- in dev, `docker-compose.yml` bind-mounts the service source and runs
-  uvicorn `--reload` for hot reload;
+- `docker-compose.yml` runs the code baked into each image; the opt-in
+  `compose.dev.yml` overlay bind-mounts the service source and runs uvicorn
+  `--reload` for hot reload;
 - `deploy.replicas: 2` on rag-service demonstrates horizontal scaling behind
   the load balancer (`docker compose up -d --scale rag-service=N`);
 - every service in `docker-compose.yml` carries `deploy.resources`

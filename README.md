@@ -85,6 +85,12 @@ Every swappable piece — model providers, embeddings, the vector store, documen
    docker compose up --build
    ```
 
+   Working on the Python services? Layer the dev overlay on top for hot reload (source bind-mounted, uvicorn `--reload`):
+
+   ```bash
+   docker compose -f docker-compose.yml -f compose.dev.yml up --build
+   ```
+
 4. Open **http://localhost:8080** — create an account, and you're in.
 
 ## Where the Project Is

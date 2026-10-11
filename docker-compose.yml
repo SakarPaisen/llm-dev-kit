@@ -85,11 +85,12 @@ services:
     restart: unless-stopped
 
   # ----------------------------------------------------------- microservices
+  # The images carry their own source and run without --reload. For hot
+  # reload, layer compose.dev.yml on top (see its header).
   llm-service:
     build:
       context: .
       target: llm-service
-    command: uvicorn llm_service.main:app --host 0.0.0.0 --port 8010 --reload
     environment:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       LOG_FORMAT: ${LOG_FORMAT:-json}
@@ -102,9 +103,6 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-https://api.anthropic.com}
-    volumes:
-      - ./services/devkit_common/src/devkit_common:/app/devkit_common
-      - ./services/llm_service/src/llm_service:/app/llm_service
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ulimits: *high-connection-ulimits
@@ -125,7 +123,6 @@ services:
     build:
       context: .
       target: rag-service
-    command: uvicorn rag_service.main:app --host 0.0.0.0 --port 8020 --reload
     deploy:
       replicas: 2
       resources:
@@ -144,9 +141,6 @@ services:
       CHROMA_PORT: 8000
       DEFAULT_CHAT_MODEL: ${DEFAULT_CHAT_MODEL:-llama3.1}
       CACHE_TTL: ${CACHE_TTL:-3600}
-    volumes:
-      - ./services/devkit_common/src/devkit_common:/app/devkit_common
-      - ./services/rag_service/src/rag_service:/app/rag_service
     ulimits: *high-connection-ulimits
     depends_on:
       llm-service:
@@ -169,9 +163,6 @@ services:
       LOG_FORMAT: ${LOG_FORMAT:-json}
       LLM_SERVICE_URL: http://llm-service:8010
       RAG_SERVICE_URL: http://rag-service:8020
-    volumes:
-      - ./services/devkit_common/src/devkit_common:/app/devkit_common
-      - ./services/mcp_service/src/mcp_service:/app/mcp_service
     deploy:
       resources:
         reservations:

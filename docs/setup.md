@@ -52,6 +52,16 @@ Or detached:
 docker compose up -d --build
 ```
 
+This runs the services from the code baked into their images. For hot reload
+while working on the Python services, add the dev overlay, which bind-mounts
+their source and runs uvicorn with `--reload`:
+
+```bash
+docker compose -f docker-compose.yml -f compose.dev.yml up --build
+```
+
+The overlay is opt-in on purpose: a plain `docker compose up` never picks it up.
+
 Verify everything is healthy:
 
 ```bash
