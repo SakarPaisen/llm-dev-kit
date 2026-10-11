@@ -1,8 +1,8 @@
 # Architecture
 
 The LLM Dev Kit is a set of small, independently built and deployed services
-behind an Nginx gateway. The only published application port is the gateway
-(`:8080`). Every service has its own Docker image stage, its own dependency
+behind an Nginx gateway. The only published port is the gateway (`:8080`),
+bound to `127.0.0.1` unless `GATEWAY_BIND` opts into wider access. Every service has its own Docker image stage, its own dependency
 set, and communicates over HTTP — no shared in-process imports across
 service boundaries (only the thin `devkit_common` library is shared at build
 time).

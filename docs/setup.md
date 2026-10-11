@@ -60,7 +60,11 @@ curl http://localhost:8080/api/rag/health
 curl http://localhost:8080/api/llm/health
 ```
 
-`nginx` is the **only** published port. If `docker compose ps` shows services
+`nginx` is the **only** published port, and it listens on `127.0.0.1` by default.
+To reach the stack from other machines on your network, set `GATEWAY_BIND=0.0.0.0`
+in `.env` — but read the warning next to it in `.env.example` first: until
+Phase 4 adds authentication, that exposes the APIs and account registration to
+everyone on the network. If `docker compose ps` shows services
 as `Exited`, nothing is listening on `:8080` and the whole UI — not just
 RAG — will be unreachable; see [Troubleshooting](#troubleshooting).
 
@@ -112,6 +116,26 @@ Cloud calls are routed through LiteLLM. Set `OPENAI_API_KEY`,
 chat UI and paste your key there. See the README's
 [Cloud LLMs section](../README.md#cloud-llms--bring-your-own-api-key) for
 details.
+
+## Reaching Redis or Chroma from the host
+
+Redis and Chroma are deliberately not published: the services reach them over
+the Compose network, and neither has authentication. To inspect them from your
+machine while debugging, create a local override file (not committed), bound
+to localhost only:
+
+```yaml
+# compose.debug-ports.yml
+services:
+  redis:
+    ports: ["127.0.0.1:6379:6379"]
+  chroma:
+    ports: ["127.0.0.1:8000:8000"]
+```
+
+```bash
+docker compose -f docker-compose.yml -f compose.debug-ports.yml up -d redis chroma
+```
 
 ## Stopping and restarting
 

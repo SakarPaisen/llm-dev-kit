@@ -78,3 +78,5 @@ next-env.d.ts
 
 # Claude Code — the whole .claude/ directory stays local, never pushed
 .claude/
+# Local debugging override for host access to Redis/Chroma (docs/setup.md)
+compose.debug-ports.yml
