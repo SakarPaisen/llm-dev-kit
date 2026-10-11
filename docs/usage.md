@@ -163,11 +163,11 @@ Both of these use the same documents as the chat app.
 
 - **Any OpenAI SDK or client**, such as Open WebUI or LangChain: point it at
   `http://<host>:8080/v1`, use the model `llama3.1`, and your own API key
-  (account menu → **API keys**). See [API Reference](../README.md#api-reference).
+  (account menu → **API keys**). See [Use it from code](../README.md#use-it-from-code).
 - **Claude Desktop or another MCP client:** run
   `docker compose --profile mcp run --rm -T mcp` as the server command, with
   `LDK_API_KEY` set to your API key. It provides two tools, `ask_llm_dev_kit`
-  and `list_models`. See [MCP Usage](../README.md#mcp-usage).
+  and `list_models`. See [Use it from code](../README.md#use-it-from-code).
 
 An API key acts as you, with your role. Revoke it from the same dialog; it
 stops working within a minute.

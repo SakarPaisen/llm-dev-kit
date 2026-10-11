@@ -125,11 +125,10 @@ chunks and a 400 response.
 ## 6. Cloud models (optional)
 
 Cloud calls are routed through LiteLLM. Set `OPENAI_API_KEY`,
-`GEMINI_API_KEY` and/or `ANTHROPIC_API_KEY` in `.env` (server-wide), pass
-`api_key` per request to `/api/rag/chat`, or just pick the provider in the
-chat UI and paste your key there. See the README's
-[Cloud LLMs section](../README.md#cloud-llms--bring-your-own-api-key) for
-details.
+`GEMINI_API_KEY` and/or `ANTHROPIC_API_KEY` in `.env` to make those models
+available to everyone in the model picker, or pass `api_key` per request to
+`/api/rag/chat`. The chat app has no field for a personal cloud key. See the
+README's [Configuration section](../README.md#configuration) for details.
 
 ## Reaching Redis or Chroma from the host
 
